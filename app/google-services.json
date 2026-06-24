@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "243081274905",
+    "firebase_url": "https://meserowatch-default-rtdb.firebaseio.com",
+    "project_id": "meserowatch",
+    "storage_bucket": "meserowatch.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:243081274905:android:bf0843e1dd69aa1218ec88",
+        "android_client_info": {
+          "package_name": "mx.utng.carh.meserowatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARYF20x2M4590Mss9e-NPd98NObv5VGTM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

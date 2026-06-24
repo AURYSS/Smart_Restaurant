@@ -1,35 +1,55 @@
 package mx.utng.carh.meserowatch.presentation
 
 import androidx.lifecycle.ViewModel
+import com.google.firebase.database.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PedidoViewModel : ViewModel() {
 
-    private val _pedidos = MutableStateFlow(
-        listOf(
-            Pedido(1, 4, "Carne asada · Agua", EstadoPedido.LISTO),
-            Pedido(2, 7, "Tacos x3 · Refresco", EstadoPedido.LISTO),
-            Pedido(3, 2, "En preparacion...", EstadoPedido.EN_PREPARACION)
-        )
-    )
+    private val database = FirebaseDatabase.getInstance().getReference("pedidos")
+
+    private val _pedidos = MutableStateFlow<List<Pedido>>(emptyList())
     val pedidos: StateFlow<List<Pedido>> = _pedidos.asStateFlow()
 
     val pedidoActual: Pedido?
         get() = _pedidos.value.firstOrNull { it.estado == EstadoPedido.LISTO }
 
-    fun confirmarEntrega(id: Int) {
-        _pedidos.value = _pedidos.value.filter { it.id != id }
+    init {
+        escucharPedidos()
     }
 
-    fun posponerPedido(id: Int) {
-        val lista = _pedidos.value.toMutableList()
-        val idx = lista.indexOfFirst { it.id == id }
-        if (idx != -1) {
-            val pedido = lista.removeAt(idx)
-            lista.add(pedido)
-            _pedidos.value = lista
+    private fun escucharPedidos() {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val lista = mutableListOf<Pedido>()
+                for (postSnapshot in snapshot.children) {
+                    val pedido = postSnapshot.getValue(Pedido::class.java)
+                    if (pedido != null) {
+                        lista.add(pedido.copy(id = postSnapshot.key ?: ""))
+                    }
+                }
+                _pedidos.value = lista
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Manejar error si es necesario
+            }
+        })
+    }
+
+    fun confirmarEntrega(id: String) {
+        // En un escenario real, podríamos eliminarlo o cambiar el estado a ENTREGADO
+        database.child(id).removeValue()
+    }
+
+    fun posponerPedido(id: String) {
+        // Posponer podría ser cambiar una prioridad o simplemente moverlo al final localmente
+        // pero para persistencia en DB, podríamos cambiar un timestamp
+        val pedido = _pedidos.value.find { it.id == id }
+        pedido?.let {
+            database.child(id).child("estado").setValue(EstadoPedido.EN_PREPARACION)
         }
     }
 }

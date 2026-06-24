@@ -87,7 +87,7 @@ fun PantallaNotificacion(
 @Composable
 fun PantallaLista(
     pedidos: List<Pedido>,
-    onConfirmar: (Int) -> Unit
+    onConfirmar: (String) -> Unit
 ) {
     val listos = pedidos.count { it.estado == EstadoPedido.LISTO }
 
@@ -122,7 +122,7 @@ fun PantallaLista(
 }
 
 @Composable
-fun TarjetaPedido(pedido: Pedido, onConfirmar: (Int) -> Unit) {
+fun TarjetaPedido(pedido: Pedido, onConfirmar: (String) -> Unit) {
     val esListo = pedido.estado == EstadoPedido.LISTO
 
     Chip(

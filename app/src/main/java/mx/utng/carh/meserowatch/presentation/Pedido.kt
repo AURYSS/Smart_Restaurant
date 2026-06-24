@@ -1,10 +1,10 @@
 package mx.utng.carh.meserowatch.presentation
 
 data class Pedido(
-    val id: Int,
-    val mesa: Int,
-    val descripcion: String,
-    val estado: EstadoPedido
+    val id: String = "",
+    val mesa: Int = 0,
+    val descripcion: String = "",
+    val estado: EstadoPedido = EstadoPedido.EN_PREPARACION
 )
 
 enum class EstadoPedido {
