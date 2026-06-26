@@ -11,6 +11,11 @@ data class PlatilloSeleccionado(
     val cantidad: Int = 1
 )
 
+data class ItemPedido(
+    val descripcion: String = "",
+    val nota: String = ""
+)
+
 data class Pedido(
     val id: String = "",
     val mesa: Int = 0,
@@ -18,5 +23,7 @@ data class Pedido(
     val nota: String = "",
     val estado: EstadoPedido = EstadoPedido.EN_PREPARACION,
     val timestamp: Long = 0,
+    val imagenUrl: String = "",
+    val items: List<ItemPedido> = emptyList(),
     val platillos: List<PlatilloSeleccionado> = emptyList()
 )
