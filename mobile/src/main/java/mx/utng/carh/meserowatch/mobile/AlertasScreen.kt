@@ -1,0 +1,141 @@
+package mx.utng.carh.meserowatch.mobile
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+
+@Composable
+fun AlertasScreen() {
+    val database = FirebaseDatabase.getInstance().getReference("pedidos")
+    var pedidos by remember { mutableStateOf<List<Pedido>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val lista = mutableListOf<Pedido>()
+                snapshot.children.forEach { child ->
+                    try {
+                        val estadoStr = child.child("estado").value?.toString() ?: "EN_PREPARACION"
+                        val p = Pedido(
+                            id = child.key ?: "",
+                            mesa = child.child("mesa").value.toString().toDoubleOrNull()?.toInt() ?: 0,
+                            descripcion = child.child("descripcion").value?.toString() ?: "",
+                            estado = try { EstadoPedido.valueOf(estadoStr) } catch (e: Exception) { EstadoPedido.EN_PREPARACION },
+                            timestamp = child.child("timestamp").value.toString().toLongOrNull() ?: 0L
+                        )
+                        lista.add(p)
+                    } catch (e: Exception) { }
+                }
+                pedidos = lista
+            }
+            override fun onCancelled(error: DatabaseError) { }
+        })
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+            .padding(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Pedidos activos", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Actualizado hace 1 min", color = Color.Gray)
+            }
+            Box(
+                modifier = Modifier.background(Color(0xFF1E293B), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("${pedidos.size} mesas", color = Color.White, fontSize = 12.sp)
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        var selectedFilter by remember { mutableStateOf("Todos") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip("Todos", selectedFilter == "Todos") { selectedFilter = "Todos" }
+            FilterChip("Listos", selectedFilter == "Listos") { selectedFilter = "Listos" }
+            FilterChip("En cocina", selectedFilter == "En cocina") { selectedFilter = "En cocina" }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        val pedidosFiltrados = when(selectedFilter) {
+            "Listos" -> pedidos.filter { it.estado == EstadoPedido.LISTO }
+            "En cocina" -> pedidos.filter { it.estado == EstadoPedido.EN_PREPARACION }
+            else -> pedidos
+        }
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(pedidosFiltrados) { pedido ->
+                AlertaItem(pedido)
+            }
+        }
+    }
+}
+
+@Composable
+fun AlertaItem(pedido: Pedido) {
+    Surface(
+        color = Color(0xFF1E293B),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(
+                        if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981) else Color.Gray,
+                        androidx.compose.foundation.shape.CircleShape
+                    )
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Mesa ${pedido.mesa}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(pedido.descripcion, color = Color.Gray, fontSize = 14.sp, maxLines = 1)
+                Text(
+                    if (pedido.estado == EstadoPedido.LISTO) "Listo hace 2 min" else "~8 min restantes",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+            Box(
+                modifier = Modifier.background(
+                    if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981).copy(0.1f) else Color.Gray.copy(0.1f),
+                    RoundedCornerShape(8.dp)
+                ).padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    if (pedido.estado == EstadoPedido.LISTO) "Listo" else "Cocina",
+                    color = if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981) else Color.Gray,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}

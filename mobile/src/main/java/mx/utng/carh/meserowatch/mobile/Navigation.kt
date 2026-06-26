@@ -22,6 +22,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Nuevo : Screen("nuevo", "Nuevo", Icons.Default.Add)
     object MisPedidos : Screen("mis_pedidos", "Mis pedidos", Icons.Default.Checklist)
     object Mesas : Screen("mesas", "Mesas", Icons.Default.TableBar)
+    object Alertas : Screen("alertas", "Alertas", Icons.Default.Add) // Usar icono adecuado
     object Menu : Screen("menu", "Menú", Icons.Default.RestaurantMenu)
     object Personal : Screen("personal", "Personal", Icons.Default.Group)
 }
@@ -29,7 +30,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val items = listOf(Screen.Nuevo, Screen.MisPedidos, Screen.Mesas, Screen.Menu, Screen.Personal)
+    val items = listOf(Screen.Nuevo, Screen.Alertas, Screen.Mesas, Screen.Menu, Screen.Personal)
 
     Scaffold(
         bottomBar = {
@@ -67,6 +68,7 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Nuevo.route) { NuevoPedidoScreen() }
+            composable(Screen.Alertas.route) { AlertasScreen() }
             composable(Screen.MisPedidos.route) { Text("Mis Pedidos Screen", color = Color.White) }
             composable(Screen.Mesas.route) { EstadoMesasScreen() }
             composable(Screen.Menu.route) { MenuAdminScreen() }

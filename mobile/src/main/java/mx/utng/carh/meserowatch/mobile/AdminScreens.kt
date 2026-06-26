@@ -26,6 +26,13 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun MenuAdminScreen() {
+    var mostrarNuevoPlatillo by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf("Todos") }
+
+    if (mostrarNuevoPlatillo) {
+        NuevoPlatilloDialog(onDismiss = { mostrarNuevoPlatillo = false })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -42,7 +49,7 @@ fun MenuAdminScreen() {
                 Text("24 platillos · 4 categorías", color = Color.Gray)
             }
             Button(
-                onClick = { },
+                onClick = { mostrarNuevoPlatillo = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -53,12 +60,12 @@ fun MenuAdminScreen() {
 
         Spacer(Modifier.height(24.dp))
 
-        // Categorías
+        // Categorías funcionales
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip("Todos", true) { }
-            FilterChip("Entradas", false) { }
-            FilterChip("Platos", false) { }
-            FilterChip("Bebidas", false) { }
+            val categorias = listOf("Todos", "Entradas", "Platos", "Bebidas", "Postres")
+            categorias.forEach { cat ->
+                FilterChip(cat, selectedCategory == cat) { selectedCategory = cat }
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -68,11 +75,22 @@ fun MenuAdminScreen() {
             Platillo("2", "Tacos de pastor", 65.0, "Entradas", true, emoji = "🌮"),
             Platillo("3", "Pozole rojo", 120.0, "Platos", true, emoji = "🍲"),
             Platillo("4", "Guacamole", 55.0, "Entradas", true, emoji = "🥑"),
-            Platillo("5", "Agua de jamaica", 35.0, "Bebidas", true, emoji = "🥤")
+            Platillo("5", "Agua de jamaica", 35.0, "Bebidas", true, emoji = "🥤"),
+            Platillo("6", "Ensalada César", 90.0, "Entradas", true, emoji = "🥗"),
+            Platillo("7", "Cerveza Corona", 45.0, "Bebidas", true, emoji = "🍺"),
+            Platillo("8", "Flan Napolitano", 60.0, "Postres", true, emoji = "🍮"),
+            Platillo("9", "Pastel de Chocolate", 75.0, "Postres", true, emoji = "🍰"),
+            Platillo("10", "Limonada natural", 30.0, "Bebidas", true, emoji = "🍋")
         )
 
+        val platillosFiltrados = if (selectedCategory == "Todos") {
+            platillos
+        } else {
+            platillos.filter { it.categoria == selectedCategory }
+        }
+
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(platillos) { platillo ->
+            items(platillosFiltrados) { platillo ->
                 AdminPlatilloItem(platillo)
             }
         }
@@ -112,6 +130,12 @@ fun AdminPlatilloItem(platillo: Platillo) {
 
 @Composable
 fun PersonalAdminScreen() {
+    var mostrarNuevoUsuario by remember { mutableStateOf(false) }
+
+    if (mostrarNuevoUsuario) {
+        NuevoUsuarioDialog(onDismiss = { mostrarNuevoUsuario = false })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -128,7 +152,7 @@ fun PersonalAdminScreen() {
                 Text("9 usuarios · 6 activos ahora", color = Color.Gray)
             }
             Button(
-                onClick = { },
+                onClick = { mostrarNuevoUsuario = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -196,6 +220,12 @@ fun UsuarioItem(usuario: Usuario) {
 
 @Composable
 fun EstadoMesasScreen() {
+    var mostrarNuevaMesa by remember { mutableStateOf(false) }
+
+    if (mostrarNuevaMesa) {
+        NuevaMesaDialog(onDismiss = { mostrarNuevaMesa = false })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -212,7 +242,7 @@ fun EstadoMesasScreen() {
                 Text("12 mesas · 7 ocupadas · 2 reservadas", color = Color.Gray)
             }
             Button(
-                onClick = { },
+                onClick = { mostrarNuevaMesa = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
                 shape = RoundedCornerShape(12.dp)
             ) {

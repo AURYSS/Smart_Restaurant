@@ -19,6 +19,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +30,26 @@ fun NuevoPedidoScreen() {
     var searchText by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Todas") }
     var mesaSeleccionadaParaPedido by remember { mutableStateOf<Int?>(null) }
+    
+    val database = FirebaseDatabase.getInstance().getReference("pedidos")
+    var mesasOcupadas by remember { mutableStateOf<Set<Int>>(emptySet()) }
+
+    LaunchedEffect(Unit) {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ocupadas = mutableSetOf<Int>()
+                snapshot.children.forEach { child ->
+                    val mesaId = child.child("mesa").value.toString().toDoubleOrNull()?.toInt() ?: 0
+                    val estado = child.child("estado").value?.toString() ?: ""
+                    if (estado != "ENTREGADO") {
+                        ocupadas.add(mesaId)
+                    }
+                }
+                mesasOcupadas = ocupadas
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
 
     if (mesaSeleccionadaParaPedido != null) {
         ElegirPlatillosScreen(mesaId = mesaSeleccionadaParaPedido!!) {
@@ -62,13 +86,13 @@ fun NuevoPedidoScreen() {
                 placeholder = { Text("Buscar mesa...", color = Color.Gray) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                 colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color(0xFF1E293B),
-                unfocusedIndicatorColor = Color(0xFF1E293B),
-                focusedContainerColor = Color(0xFF1E293B),
-                unfocusedContainerColor = Color(0xFF1E293B),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            )
+                    focusedIndicatorColor = Color(0xFF1E293B),
+                    unfocusedIndicatorColor = Color(0xFF1E293B),
+                    focusedContainerColor = Color(0xFF1E293B),
+                    unfocusedContainerColor = Color(0xFF1E293B),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
             )
 
             Spacer(Modifier.height(16.dp))
@@ -77,7 +101,7 @@ fun NuevoPedidoScreen() {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip("Todas", selectedFilter == "Todas") { selectedFilter = "Todas" }
                 FilterChip("Libres", selectedFilter == "Libres") { selectedFilter = "Libres" }
-                FilterChip("Mis mesas", selectedFilter == "Mis mesas") { selectedFilter = "Mis mesas" }
+                FilterChip("Ocupadas", selectedFilter == "Ocupadas") { selectedFilter = "Ocupadas" }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -86,22 +110,23 @@ fun NuevoPedidoScreen() {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 StatusIndicator("Libre", Color(0xFF3B82F6))
                 StatusIndicator("Ocupada", Color(0xFF10B981))
-                StatusIndicator("Mis mesas", Color(0xFF6366F1))
             }
 
             Spacer(Modifier.height(24.dp))
 
-            Text("Zona A", color = Color.Gray, fontWeight = FontWeight.Bold)
+            Text("Todas las mesas", color = Color.Gray, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
 
-            val mesas = listOf(
-                Mesa(1, EstadoMesa.OCUPADA, 2, zona = "A", meseroAsignado = "Yo"),
-                Mesa(2, EstadoMesa.OCUPADA, 2, zona = "A"),
-                Mesa(3, EstadoMesa.LIBRE, 4, zona = "A"),
-                Mesa(4, EstadoMesa.OCUPADA, 4, zona = "A", meseroAsignado = "Yo"),
-                Mesa(5, EstadoMesa.LIBRE, 2, zona = "A"),
-                Mesa(6, EstadoMesa.OCUPADA, 5, zona = "A")
-            )
+            val mesas = (1..12).map { 
+                Mesa(it, if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE, 4) 
+            }
+
+            val mesasFiltradas = mesas.filter { mesa ->
+                (selectedFilter == "Todas" || 
+                 (selectedFilter == "Libres" && mesa.estado == EstadoMesa.LIBRE) ||
+                 (selectedFilter == "Ocupadas" && mesa.estado == EstadoMesa.OCUPADA)) &&
+                (searchText.isEmpty() || mesa.id.toString().contains(searchText))
+            }
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -109,7 +134,7 @@ fun NuevoPedidoScreen() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(mesas) { mesa ->
+                items(mesasFiltradas) { mesa ->
                     MesaItem(mesa) {
                         mesaSeleccionadaParaPedido = mesa.id
                     }
@@ -145,7 +170,6 @@ fun StatusIndicator(text: String, color: Color) {
 @Composable
 fun MesaItem(mesa: Mesa, onClick: () -> Unit) {
     val borderColor = when {
-        mesa.meseroAsignado == "Yo" -> Color(0xFF6366F1)
         mesa.estado == EstadoMesa.OCUPADA -> Color(0xFF10B981)
         else -> Color(0xFF3B82F6)
     }
@@ -170,7 +194,7 @@ fun MesaItem(mesa: Mesa, onClick: () -> Unit) {
                 color = Color.White
             )
             Text(
-                if (mesa.meseroAsignado == "Yo") "Mi mesa" else if (mesa.estado == EstadoMesa.OCUPADA) "Ocupada" else "Libre",
+                if (mesa.estado == EstadoMesa.OCUPADA) "Ocupada" else "Libre",
                 fontSize = 12.sp,
                 color = Color.Gray
             )

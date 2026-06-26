@@ -13,3 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Módulos
+/app/build
+/tv/build
+/mobile/build
+
+# Kotlin
+.kotlin
