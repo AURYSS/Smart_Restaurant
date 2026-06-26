@@ -16,7 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -279,7 +282,28 @@ fun EditarPlatilloDialog(platillo: Platillo, onDismiss: () -> Unit) {
 @Composable
 fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
     var nombre by remember { mutableStateOf("") }
+    var rol by remember { mutableStateOf(RolUsuario.MESERO) }
+    var zonaId by remember { mutableStateOf("") }
+    var estadoInicial by remember { mutableStateOf(EstadoUsuario.ACTIVO) }
+    var expandedRol by remember { mutableStateOf(false) }
+    var expandedZona by remember { mutableStateOf(false) }
+    
     val database = FirebaseDatabase.getInstance().getReference("usuarios")
+    val databaseZonas = FirebaseDatabase.getInstance().getReference("zonas")
+    var listaZonas by remember { mutableStateOf<List<Zona>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        databaseZonas.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val zonas = mutableListOf<Zona>()
+                snapshot.children.forEach { child ->
+                    zonas.add(Zona(id = child.key ?: "", nombreZona = child.child("nombreZona").value?.toString() ?: ""))
+                }
+                listaZonas = zonas
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -313,6 +337,95 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
                     )
                 )
 
+                Spacer(Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Rol *", color = Color.White, fontSize = 14.sp)
+                        ExposedDropdownMenuBox(
+                            expanded = expandedRol,
+                            onExpandedChange = { expandedRol = !expandedRol }
+                        ) {
+                            OutlinedTextField(
+                                value = rol.name,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRol) },
+                                modifier = Modifier.menuAnchor(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedRol,
+                                onDismissRequest = { expandedRol = false }
+                            ) {
+                                RolUsuario.values().forEach { selectionOption ->
+                                    DropdownMenuItem(
+                                        text = { Text(selectionOption.name) },
+                                        onClick = {
+                                            rol = selectionOption
+                                            expandedRol = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Zona asignada *", color = Color.White, fontSize = 14.sp)
+                        ExposedDropdownMenuBox(
+                            expanded = expandedZona,
+                            onExpandedChange = { expandedZona = !expandedZona }
+                        ) {
+                            OutlinedTextField(
+                                value = listaZonas.find { it.id == zonaId }?.nombreZona ?: "Seleccionar...",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedZona) },
+                                modifier = Modifier.menuAnchor(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedZona,
+                                onDismissRequest = { expandedZona = false }
+                            ) {
+                                listaZonas.forEach { zona ->
+                                    DropdownMenuItem(
+                                        text = { Text(zona.nombreZona) },
+                                        onClick = {
+                                            zonaId = zona.id
+                                            expandedZona = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Text("Estado inicial *", color = Color.White, fontSize = 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EstadoUsuario.values().forEach { estado ->
+                        val isSelected = estadoInicial == estado
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { estadoInicial = estado },
+                            label = { Text(estado.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF3B82F6),
+                                labelColor = if (isSelected) Color.White else Color.Gray
+                            )
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(24.dp))
 
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
@@ -322,7 +435,15 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
                         onClick = { 
                             if (nombre.isNotEmpty()) {
                                 val key = database.push().key ?: ""
-                                database.child(key).setValue(mapOf("id" to key, "nombre" to nombre))
+                                database.child(key).setValue(Usuario(
+                                    id = key,
+                                    nombre = nombre,
+                                    rol = rol,
+                                    activo = estadoInicial == EstadoUsuario.ACTIVO,
+                                    estadoUsuario = estadoInicial,
+                                    zonaId = zonaId,
+                                    zonaAsignada = listaZonas.find { it.id == zonaId }?.nombreZona ?: ""
+                                ))
                                 onDismiss()
                             }
                         },
@@ -330,6 +451,90 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("✓ Guardar usuario")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NuevaZonaDialog(onDismiss: () -> Unit) {
+    var nombreZona by remember { mutableStateOf("") }
+    var estadoInicial by remember { mutableStateOf(EstadoZona.DISPONIBLE) }
+    val database = FirebaseDatabase.getInstance().getReference("zonas")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = Color(0xFF1E293B),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.padding(16.dp).fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.TableBar, contentDescription = null, tint = Color(0xFF10B981))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Nueva zona", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Agregar zona al plano del restaurante", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+                
+                Spacer(Modifier.height(24.dp))
+                
+                Text("Nombre de zona *", color = Color.White, fontSize = 14.sp)
+                OutlinedTextField(
+                    value = nombreZona, 
+                    onValueChange = { nombreZona = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Ej. Terraza exterior", color = Color.Gray) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+
+                Spacer(Modifier.height(16.dp))
+                Text("Estado inicial *", color = Color.White, fontSize = 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EstadoZona.values().forEach { estado ->
+                        val isSelected = estadoInicial == estado
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { estadoInicial = estado },
+                            label = { Text(estado.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF10B981),
+                                labelColor = if (isSelected) Color.White else Color.Gray
+                            )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+                    Spacer(Modifier.width(16.dp))
+                    Button(
+                        onClick = { 
+                            if (nombreZona.isNotEmpty()) {
+                                val key = database.push().key ?: ""
+                                database.child(key).setValue(Zona(
+                                    id = key,
+                                    nombreZona = nombreZona,
+                                    estadoZona = estadoInicial
+                                ))
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("✓ Guardar zona")
                     }
                 }
             }

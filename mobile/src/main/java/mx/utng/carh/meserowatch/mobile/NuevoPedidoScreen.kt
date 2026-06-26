@@ -143,7 +143,7 @@ fun NuevoPedidoScreen(onNavigateToAlertas: () -> Unit) {
             // Combinar mesas por defecto con las de la base de datos
             val idsMesasConfig = listaMesasConfig.map { it.id }.toSet()
             val mesasBase = (1..12).filter { !idsMesasConfig.contains(it) }.map { 
-                Mesa(it, if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE, 4)
+                Mesa(id = it, numero = it, estado = if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE, capacidad = 4)
             }
             val mesasNuevas = listaMesasConfig.map { 
                 it.copy(estado = if (mesasOcupadas.contains(it.id)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE)

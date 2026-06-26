@@ -9,8 +9,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -25,10 +27,332 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
+import java.text.SimpleDateFormat
+import java.util.*
+
+@Composable
+fun AdminDashboardScreen(onNavigateTo: (String) -> Unit) {
+    val databasePedidos = FirebaseDatabase.getInstance().getReference("pedidos")
+    val databaseUsuarios = FirebaseDatabase.getInstance().getReference("usuarios")
+    val databaseMesas = FirebaseDatabase.getInstance().getReference("mesas_config")
+
+    var ventasHoy by remember { mutableStateOf(0.0) }
+    var totalPedidos by remember { mutableStateOf(0) }
+    var pedidosEnCurso by remember { mutableStateOf(0) }
+    var personalActivo by remember { mutableStateOf(0) }
+    var mesasOcupadasCount by remember { mutableStateOf(0) }
+    var mesasTotalesCount by remember { mutableStateOf(12) }
+
+    LaunchedEffect(Unit) {
+        databasePedidos.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                var ventas = 0.0
+                var enCurso = 0
+                var total = 0
+                snapshot.children.forEach { child ->
+                    val estado = child.child("estado").value?.toString() ?: ""
+                    val totalPedido = child.child("total").value.toString().toDoubleOrNull() ?: 0.0
+                    total++
+                    if (estado != "ENTREGADO" && estado != "CANCELADO") {
+                        enCurso++
+                    }
+                    if (estado == "ENTREGADO") {
+                        ventas += totalPedido
+                    }
+                }
+                ventasHoy = ventas
+                pedidosEnCurso = enCurso
+                totalPedidos = total
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        databaseUsuarios.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                var activos = 0
+                snapshot.children.forEach { child ->
+                    val activo = child.child("activo").value as? Boolean ?: false
+                    if (activo) activos++
+                }
+                personalActivo = activos
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Escuchar mesas ocupadas
+        databasePedidos.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ocupadas = mutableSetOf<Int>()
+                snapshot.children.forEach { child ->
+                    val mesaId = child.child("mesa").value.toString().toDoubleOrNull()?.toInt() ?: 0
+                    val estado = child.child("estado").value?.toString() ?: ""
+                    if (estado != "ENTREGADO" && estado != "CANCELADO") {
+                        ocupadas.add(mesaId)
+                    }
+                }
+                mesasOcupadasCount = ocupadas.size
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text("Hola, Admin", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(SimpleDateFormat("EEEE dd MMMM", Locale("es", "MX")).format(Date()), color = Color.Gray)
+
+        Spacer(Modifier.height(24.dp))
+
+        // Grid de Resumen
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                DashboardCard(
+                    title = "Ventas hoy",
+                    value = "$${ventasHoy.toInt()}",
+                    subtitle = "+12% vs ayer",
+                    modifier = Modifier.weight(1f),
+                    color = Color(0xFF1E293B)
+                )
+                DashboardCard(
+                    title = "Pedidos",
+                    value = totalPedidos.toString(),
+                    subtitle = "$pedidosEnCurso en curso",
+                    modifier = Modifier.weight(1f),
+                    color = Color(0xFF1E293B)
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                DashboardCard(
+                    title = "Personal activo",
+                    value = personalActivo.toString(),
+                    subtitle = "En turno",
+                    modifier = Modifier.weight(1f),
+                    color = Color(0xFF1E293B)
+                )
+                DashboardCard(
+                    title = "Mesas ocupadas",
+                    value = "$mesasOcupadasCount/$mesasTotalesCount",
+                    subtitle = "${((mesasOcupadasCount.toFloat()/mesasTotalesCount.toFloat())*100).toInt()}% ocupación",
+                    modifier = Modifier.weight(1f),
+                    color = Color(0xFF1E293B)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+        Text("ACCESO RÁPIDO", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Spacer(Modifier.height(16.dp))
+
+        // Botones de acceso rápido
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuickAccessButton("Turnos", Screen.Turnos.route, onNavigateTo, Modifier.weight(1f))
+                QuickAccessButton("Historial", Screen.Historial.route, onNavigateTo, Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuickAccessButton("Menú", Screen.Menu.route, onNavigateTo, Modifier.weight(1f))
+                QuickAccessButton("Usuarios", Screen.Personal.route, onNavigateTo, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardCard(title: String, value: String, subtitle: String, modifier: Modifier, color: Color) {
+    Surface(
+        color = color,
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, color = Color.Gray, fontSize = 12.sp)
+            Text(value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(subtitle, color = Color(0xFF10B981), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+fun QuickAccessButton(text: String, route: String, onNavigate: (String) -> Unit, modifier: Modifier) {
+    Button(
+        onClick = { onNavigate(route) },
+        modifier = modifier.height(56.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(text, color = Color.White)
+    }
+}
+
+@Composable
+fun TurnosPersonalScreen() {
+    val database = FirebaseDatabase.getInstance().getReference("usuarios")
+    var listaUsuarios by remember { mutableStateOf<List<Usuario>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val usuarios = mutableListOf<Usuario>()
+                snapshot.children.forEach { child ->
+                    try {
+                        val user = Usuario(
+                            id = child.key ?: "",
+                            nombre = child.child("nombre").value?.toString() ?: "",
+                            rol = RolUsuario.valueOf(child.child("rol").value?.toString() ?: "MESERO"),
+                            activo = child.child("activo").value as? Boolean ?: false,
+                            zonaAsignada = child.child("zonaAsignada").value?.toString() ?: "",
+                            fotoEmoji = child.child("fotoEmoji").value?.toString() ?: "👤",
+                            estadoUsuario = EstadoUsuario.valueOf(child.child("estadoUsuario").value?.toString() ?: "ACTIVO")
+                        )
+                        usuarios.add(user)
+                    } catch (e: Exception) {}
+                }
+                listaUsuarios = usuarios
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+            .padding(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Turnos del personal", fontSize = 28.sp, color = Color.White, fontWeight = FontWeight.Bold)
+            Button(onClick = { }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text(" Nuevo")
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(listaUsuarios) { usuario ->
+                UsuarioTurnoItem(usuario)
+            }
+        }
+    }
+}
+
+@Composable
+fun UsuarioTurnoItem(usuario: Usuario) {
+    Surface(
+        color = Color(0xFF1E293B),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).background(Color(0xFF312E81), CircleShape), contentAlignment = Alignment.Center) {
+                Text(usuario.fotoEmoji)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(usuario.nombre, color = Color.White, fontWeight = FontWeight.Bold)
+                Text("${usuario.rol} · ${usuario.zonaAsignada}", color = Color.Gray, fontSize = 12.sp)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("8:00 - 16:00", color = Color.Gray, fontSize = 12.sp) // Ejemplo estático
+                val color = if (usuario.activo) Color(0xFF10B981) else Color(0xFFEF4444)
+                Text(if (usuario.activo) "Activo" else "Inactivo", color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun HistorialPedidosScreen() {
+    val database = FirebaseDatabase.getInstance().getReference("pedidos")
+    var listaPedidos by remember { mutableStateOf<List<Pedido>>(emptyList()) }
+    var searchText by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val pedidos = mutableListOf<Pedido>()
+                snapshot.children.forEach { child ->
+                    try {
+                        val p = Pedido(
+                            id = child.key ?: "",
+                            mesa = child.child("mesa").value.toString().toDoubleOrNull()?.toInt() ?: 0,
+                            estado = try { EstadoPedido.valueOf(child.child("estado").value.toString()) } catch(e: Exception) { EstadoPedido.PENDIENTE },
+                            total = child.child("total").value.toString().toDoubleOrNull() ?: 0.0,
+                            descripcion = child.child("descripcion").value?.toString() ?: ""
+                        )
+                        pedidos.add(p)
+                    } catch (e: Exception) {}
+                }
+                listaPedidos = pedidos.reversed() // Más recientes primero
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+            .padding(24.dp)
+    ) {
+        Text("Historial de pedidos", fontSize = 28.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            placeholder = { Text("Buscar mesa, platillo...", color = Color.Gray) },
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) }
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(listaPedidos.filter { it.mesa.toString().contains(searchText) || it.descripcion.contains(searchText, ignoreCase = true) }) { pedido ->
+                HistorialItem(pedido)
+            }
+        }
+    }
+}
+
+@Composable
+fun HistorialItem(pedido: Pedido) {
+    Surface(
+        color = Color(0xFF1E293B),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Mesa ${pedido.mesa}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                val color = when(pedido.estado) {
+                    EstadoPedido.ENTREGADO -> Color(0xFF10B981)
+                    EstadoPedido.CANCELADO -> Color(0xFFEF4444)
+                    else -> Color(0xFFF59E0B)
+                }
+                Text(pedido.estado.name, color = color, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+            Text(pedido.descripcion, color = Color.Gray, fontSize = 14.sp)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Mesero: Luis C.", color = Color.Gray, fontSize = 12.sp)
+                Text("$${pedido.total.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+        }
+    }
+}
 
 @Composable
 fun MenuAdminScreen() {
@@ -176,11 +500,16 @@ fun AdminPlatilloItem(platillo: Platillo, onEdit: () -> Unit, onDelete: () -> Un
 @Composable
 fun PersonalAdminScreen() {
     var mostrarNuevoUsuario by remember { mutableStateOf(false) }
+    var mostrarNuevaZona by remember { mutableStateOf(false) }
     val database = FirebaseDatabase.getInstance().getReference("usuarios")
     var listaUsuarios by remember { mutableStateOf<List<Usuario>>(emptyList()) }
 
     if (mostrarNuevoUsuario) {
         NuevoUsuarioDialog(onDismiss = { mostrarNuevoUsuario = false })
+    }
+    
+    if (mostrarNuevaZona) {
+        NuevaZonaDialog(onDismiss = { mostrarNuevaZona = false })
     }
 
     LaunchedEffect(Unit) {
@@ -188,15 +517,18 @@ fun PersonalAdminScreen() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val usuarios = mutableListOf<Usuario>()
                 snapshot.children.forEach { child ->
-                    val user = Usuario(
-                        id = child.key ?: "",
-                        nombre = child.child("nombre").value?.toString() ?: "Sin nombre",
-                        rol = RolUsuario.MESERO, // Por defecto mesero para este ejercicio
-                        activo = true,
-                        zonaAsignada = "Zona A",
-                        fotoEmoji = "👤"
-                    )
-                    usuarios.add(user)
+                    try {
+                        val user = Usuario(
+                            id = child.key ?: "",
+                            nombre = child.child("nombre").value?.toString() ?: "Sin nombre",
+                            rol = RolUsuario.valueOf(child.child("rol").value?.toString() ?: "MESERO"),
+                            activo = child.child("activo").value as? Boolean ?: true,
+                            zonaAsignada = child.child("zonaAsignada").value?.toString() ?: "Sin zona",
+                            fotoEmoji = child.child("fotoEmoji").value?.toString() ?: "👤",
+                            estadoUsuario = EstadoUsuario.valueOf(child.child("estadoUsuario").value?.toString() ?: "ACTIVO")
+                        )
+                        usuarios.add(user)
+                    } catch (e: Exception) {}
                 }
                 listaUsuarios = usuarios
             }
@@ -219,13 +551,21 @@ fun PersonalAdminScreen() {
                 Text("Usuarios", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 Text("${listaUsuarios.size} usuarios registrados", color = Color.Gray)
             }
-            Button(
-                onClick = { mostrarNuevoUsuario = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text(" Nuevo")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { mostrarNuevaZona = true },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Zonas")
+                }
+                Button(
+                    onClick = { mostrarNuevoUsuario = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text(" Nuevo")
+                }
             }
         }
 
@@ -270,9 +610,13 @@ fun UsuarioItem(usuario: Usuario) {
             Text("${usuario.rol} · ${usuario.zonaAsignada}", color = Color.Gray, fontSize = 14.sp)
         }
         Column(horizontalAlignment = Alignment.End) {
-            val statusColor = if (usuario.activo) Color(0xFF10B981) else Color(0xFFF59E0B)
+            val statusColor = when(usuario.estadoUsuario) {
+                EstadoUsuario.ACTIVO -> Color(0xFF10B981)
+                EstadoUsuario.INACTIVO -> Color(0xFFEF4444)
+                EstadoUsuario.EN_DESCANSO -> Color(0xFFF59E0B)
+            }
             Text(
-                if (usuario.activo) "Activo" else "Inactivo",
+                usuario.estadoUsuario.name.lowercase().replaceFirstChar { it.uppercase() },
                 color = statusColor,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
@@ -372,7 +716,7 @@ fun EstadoMesasScreen() {
         // Combinar mesas por defecto (1-12) con las de la base de datos
         val idsMesasConfig = listaMesasConfig.map { it.id }.toSet()
         val mesasBase = (1..12).filter { !idsMesasConfig.contains(it) }.map { 
-            Mesa(it, if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE)
+            Mesa(id = it, numero = it, estado = if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE)
         }
         val mesasNuevas = listaMesasConfig.map { 
             it.copy(estado = if (mesasOcupadas.contains(it.id)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE)

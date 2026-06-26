@@ -19,7 +19,7 @@
       </SelectionState>
       <SelectionState runConfigName="mobile">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-26T03:31:02.969165700Z">
+        <DropdownSelection timestamp="2026-06-26T17:42:34.236887800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Aurora\.android\avd\Pixel_6.avd" />
