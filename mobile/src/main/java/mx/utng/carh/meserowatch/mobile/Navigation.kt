@@ -67,7 +67,13 @@ fun AppNavigation() {
             startDestination = Screen.Nuevo.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Nuevo.route) { NuevoPedidoScreen() }
+            composable(Screen.Nuevo.route) { 
+                NuevoPedidoScreen(onNavigateToAlertas = {
+                    navController.navigate(Screen.Alertas.route) {
+                        popUpTo(Screen.Nuevo.route) { inclusive = false }
+                    }
+                }) 
+            }
             composable(Screen.Alertas.route) { AlertasScreen() }
             composable(Screen.MisPedidos.route) { Text("Mis Pedidos Screen", color = Color.White) }
             composable(Screen.Mesas.route) { EstadoMesasScreen() }

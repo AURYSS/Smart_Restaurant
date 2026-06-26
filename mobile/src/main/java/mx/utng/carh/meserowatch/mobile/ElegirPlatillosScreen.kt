@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,40 +24,71 @@ import com.google.firebase.database.FirebaseDatabase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ElegirPlatillosScreen(mesaId: Int, onBack: () -> Unit) {
+fun ElegirPlatillosScreen(
+    mesaId: Int, 
+    onBack: () -> Unit,
+    onNavigateToAlertas: () -> Unit
+) {
     var searchText by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Entradas") }
+    var selectedCategory by remember { mutableStateOf("Todos") }
     var mostrarResumen by remember { mutableStateOf(false) }
-    val database = FirebaseDatabase.getInstance().getReference("pedidos")
-
-    // Lista de platillos seleccionados (ID -> Cantidad)
+    
+    val databaseMenu = FirebaseDatabase.getInstance().getReference("menu")
+    var listaPlatillosDB by remember { mutableStateOf<List<Platillo>>(emptyList()) }
     val seleccionados = remember { mutableStateMapOf<String, Int>() }
 
-    val platillos = listOf(
-        Platillo("1", "Carne asada", 185.0, "Platos", true, emoji = "🥩"),
-        Platillo("2", "Tacos de pastor", 65.0, "Entradas", true, emoji = "🌮"),
-        Platillo("3", "Pozole rojo", 120.0, "Platos", true, emoji = "🍲"),
-        Platillo("4", "Guacamole", 55.0, "Entradas", true, emoji = "🥑"),
-        Platillo("5", "Agua de jamaica", 35.0, "Bebidas", true, emoji = "🥤"),
-        Platillo("6", "Ensalada César", 90.0, "Entradas", true, emoji = "🥗"),
-        Platillo("7", "Cerveza Corona", 45.0, "Bebidas", true, emoji = "🍺"),
-        Platillo("8", "Flan Napolitano", 60.0, "Postres", true, emoji = "🍮"),
-        Platillo("9", "Pastel de Chocolate", 75.0, "Postres", true, emoji = "🍰"),
-        Platillo("10", "Limonada natural", 30.0, "Bebidas", true, emoji = "🍋")
-    )
+    LaunchedEffect(Unit) {
+        databaseMenu.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val menu = mutableListOf<Platillo>()
+                snapshot.children.forEach { child ->
+                    try {
+                        val p = Platillo(
+                            id = child.key ?: "",
+                            nombre = child.child("nombre").value?.toString() ?: "",
+                            precio = child.child("precio").value.toString().toDoubleOrNull() ?: 0.0,
+                            categoria = child.child("categoria").value?.toString() ?: "Platos",
+                            emoji = child.child("emoji").value?.toString() ?: "🍽️",
+                            disponible = child.child("disponible").value as? Boolean ?: true
+                        )
+                        menu.add(p)
+                    } catch (e: Exception) {}
+                }
+                if (menu.isEmpty()) {
+                    val ejemplos = listOf(
+                        Platillo("e1", "Carne asada", 185.0, "Platos", true, emoji = "🥩"),
+                        Platillo("e2", "Tacos de pastor", 65.0, "Entradas", true, emoji = "🌮"),
+                        Platillo("e3", "Pozole rojo", 120.0, "Platos", true, emoji = "🍲"),
+                        Platillo("e4", "Guacamole", 55.0, "Entradas", true, emoji = "🥑"),
+                        Platillo("e5", "Agua de jamaica", 35.0, "Bebidas", true, emoji = "🥤"),
+                        Platillo("e6", "Papas fritas", 45.0, "Complementos", true, emoji = "🍟"),
+                        Platillo("e7", "Cerveza Corona", 45.0, "Bebidas", true, emoji = "🍺"),
+                        Platillo("e8", "Flan Napolitano", 60.0, "Postres", true, emoji = "🍮")
+                    )
+                    ejemplos.forEach { databaseMenu.child(it.id).setValue(it) }
+                } else {
+                    listaPlatillosDB = menu
+                }
+            }
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {}
+        })
+    }
 
-    val platillosFiltrados = platillos.filter { 
+    val platillosFiltrados = listaPlatillosDB.filter { 
         (selectedCategory == "Todos" || it.categoria == selectedCategory) &&
         (searchText.isEmpty() || it.nombre.contains(searchText, ignoreCase = true))
     }
 
     if (mostrarResumen) {
-        val listaParaResumen = platillos.filter { seleccionados.containsKey(it.id) }.map { p ->
+        val listaParaResumen = listaPlatillosDB.filter { seleccionados.containsKey(it.id) }.map { p ->
             PlatilloSeleccionado(p.id, p.nombre, p.precio, seleccionados[p.id] ?: 1)
         }
-        ResumenPedidoScreen(mesaId = mesaId, platillosSeleccionados = listaParaResumen, onBack = {
-            mostrarResumen = false
-        })
+        ResumenPedidoScreen(
+            mesaId = mesaId, 
+            platillosSeleccionados = listaParaResumen, 
+            onBack = { mostrarResumen = false },
+            onNavigateToAlertas = onNavigateToAlertas
+        )
     } else {
         Column(
             modifier = Modifier
@@ -83,16 +115,15 @@ fun ElegirPlatillosScreen(mesaId: Int, onBack: () -> Unit) {
 
             Spacer(Modifier.height(24.dp))
 
-            // Categorías
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Todos", "Entradas", "Platos", "Postres", "Bebidas").forEach { cat ->
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val categorias = listOf("Todos", "Entradas", "Platos", "Postres", "Bebidas", "Complementos", "Especiales")
+                items(categorias) { cat ->
                     FilterChip(cat, selectedCategory == cat) { selectedCategory = cat }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // Barra de búsqueda
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
@@ -165,10 +196,9 @@ fun ElegirPlatillosScreen(mesaId: Int, onBack: () -> Unit) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Barra inferior de confirmación
             if (seleccionados.isNotEmpty()) {
                 val totalItems = seleccionados.values.sum()
-                val totalPrice = platillos.filter { seleccionados.containsKey(it.id) }.sumOf { it.precio * (seleccionados[it.id] ?: 0) }
+                val totalPrice = listaPlatillosDB.filter { seleccionados.containsKey(it.id) }.sumOf { it.precio * (seleccionados[it.id] ?: 0) }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

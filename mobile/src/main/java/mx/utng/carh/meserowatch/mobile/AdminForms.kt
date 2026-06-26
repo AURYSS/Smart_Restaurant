@@ -23,6 +23,10 @@ import com.google.firebase.database.FirebaseDatabase
 fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
     var nombre by remember { mutableStateOf("") }
     var precio by remember { mutableStateOf("") }
+    var categoria by remember { mutableStateOf("Platos") }
+    var expanded by remember { mutableStateOf(false) }
+    val categorias = listOf("Entradas", "Platos", "Bebidas", "Postres", "Complementos", "Especiales")
+    
     val database = FirebaseDatabase.getInstance().getReference("menu")
 
     Dialog(onDismissRequest = onDismiss) {
@@ -37,7 +41,7 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text("Nuevo platillo", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text("Agregar al menú con ingredientes y precio", color = Color.Gray, fontSize = 14.sp)
+                        Text("Agregar al menú por categoría", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
                 
@@ -48,7 +52,7 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                     value = nombre, 
                     onValueChange = { nombre = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Ej. Tacos de pastor", color = Color.Gray) },
+                    placeholder = { Text("Ej. Coca Cola", color = Color.Gray) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -57,7 +61,41 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                     )
                 )
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
+
+                Text("Categoría *", color = Color.White, fontSize = 14.sp)
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categorias.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = { Text(selectionOption) },
+                                onClick = {
+                                    categoria = selectionOption
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
                 
                 Text("Precio *", color = Color.White, fontSize = 14.sp)
                 OutlinedTextField(
@@ -82,10 +120,19 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                         onClick = { 
                             if (nombre.isNotEmpty() && precio.isNotEmpty()) {
                                 val key = database.push().key ?: ""
+                                val emoji = when(categoria) {
+                                    "Bebidas" -> "🥤"
+                                    "Postres" -> "🍰"
+                                    "Entradas" -> "🥑"
+                                    "Complementos" -> "🍟"
+                                    else -> "🍽️"
+                                }
                                 database.child(key).setValue(mapOf(
                                     "id" to key,
                                     "nombre" to nombre,
                                     "precio" to (precio.toDoubleOrNull() ?: 0.0),
+                                    "categoria" to categoria,
+                                    "emoji" to emoji,
                                     "disponible" to true
                                 ))
                                 onDismiss()
@@ -95,6 +142,132 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("✓ Guardar platillo")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditarPlatilloDialog(platillo: Platillo, onDismiss: () -> Unit) {
+    var nombre by remember { mutableStateOf(platillo.nombre) }
+    var precio by remember { mutableStateOf(platillo.precio.toString()) }
+    var categoria by remember { mutableStateOf(platillo.categoria) }
+    var expanded by remember { mutableStateOf(false) }
+    val categorias = listOf("Entradas", "Platos", "Bebidas", "Postres", "Complementos", "Especiales")
+    
+    val database = FirebaseDatabase.getInstance().getReference("menu")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = Color(0xFF1E293B),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.padding(16.dp).fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Restaurant, contentDescription = null, tint = Color(0xFFF59E0B))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Editar platillo", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Modificar detalles del menú", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+                
+                Spacer(Modifier.height(24.dp))
+                
+                Text("Nombre del platillo *", color = Color.White, fontSize = 14.sp)
+                OutlinedTextField(
+                    value = nombre, 
+                    onValueChange = { nombre = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text("Categoría *", color = Color.White, fontSize = 14.sp)
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categorias.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = { Text(selectionOption) },
+                                onClick = {
+                                    categoria = selectionOption
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+                
+                Text("Precio *", color = Color.White, fontSize = 14.sp)
+                OutlinedTextField(
+                    value = precio, 
+                    onValueChange = { precio = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+                    Spacer(Modifier.width(16.dp))
+                    Button(
+                        onClick = { 
+                            if (nombre.isNotEmpty() && precio.isNotEmpty()) {
+                                val emoji = when(categoria) {
+                                    "Bebidas" -> "🥤"
+                                    "Postres" -> "🍰"
+                                    "Entradas" -> "🥑"
+                                    "Complementos" -> "🍟"
+                                    else -> "🍽️"
+                                }
+                                database.child(platillo.id).updateChildren(mapOf(
+                                    "nombre" to nombre,
+                                    "precio" to (precio.toDoubleOrNull() ?: 0.0),
+                                    "categoria" to categoria,
+                                    "emoji" to emoji
+                                ))
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("✓ Actualizar")
                     }
                 }
             }

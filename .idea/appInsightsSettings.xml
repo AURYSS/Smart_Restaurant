@@ -6,14 +6,6 @@
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
-              <option name="connection">
-                <ConnectionSetting>
-                  <option name="appId" value="mx.utng.carh.meserowatch" />
-                  <option name="mobileSdkAppId" value="1:243081274905:android:bf0843e1dd69aa1218ec88" />
-                  <option name="projectId" value="meserowatch" />
-                  <option name="projectNumber" value="243081274905" />
-                </ConnectionSetting>
-              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />

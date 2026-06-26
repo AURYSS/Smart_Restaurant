@@ -21,7 +21,12 @@ import com.google.firebase.database.ServerValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResumenPedidoScreen(mesaId: Int, platillosSeleccionados: List<PlatilloSeleccionado>, onBack: () -> Unit) {
+fun ResumenPedidoScreen(
+    mesaId: Int, 
+    platillosSeleccionados: List<PlatilloSeleccionado>, 
+    onBack: () -> Unit,
+    onNavigateToAlertas: () -> Unit
+) {
     val database = FirebaseDatabase.getInstance().getReference("pedidos")
     val items = remember { mutableStateListOf(*platillosSeleccionados.toTypedArray()) }
     // Mapa para notas por instancia (PlatilloId -> List<Nota>)
@@ -117,7 +122,7 @@ fun ResumenPedidoScreen(mesaId: Int, platillosSeleccionados: List<PlatilloSelecc
                     "timestamp" to ServerValue.TIMESTAMP
                 )
                 database.child(nuevoPedidoKey).setValue(nuevoPedido).addOnCompleteListener {
-                    onBack()
+                    onNavigateToAlertas()
                 }
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),

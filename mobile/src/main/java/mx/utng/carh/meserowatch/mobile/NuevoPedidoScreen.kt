@@ -26,16 +26,19 @@ import com.google.firebase.database.ValueEventListener
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NuevoPedidoScreen() {
+fun NuevoPedidoScreen(onNavigateToAlertas: () -> Unit) {
     var searchText by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Todas") }
     var mesaSeleccionadaParaPedido by remember { mutableStateOf<Int?>(null) }
     
-    val database = FirebaseDatabase.getInstance().getReference("pedidos")
+    val databasePedidos = FirebaseDatabase.getInstance().getReference("pedidos")
+    val databaseMesas = FirebaseDatabase.getInstance().getReference("mesas_config")
+    
     var mesasOcupadas by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var listaMesasConfig by remember { mutableStateOf<List<Mesa>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        database.addValueEventListener(object : ValueEventListener {
+        databasePedidos.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ocupadas = mutableSetOf<Int>()
                 snapshot.children.forEach { child ->
@@ -49,12 +52,32 @@ fun NuevoPedidoScreen() {
             }
             override fun onCancelled(error: DatabaseError) {}
         })
+
+        databaseMesas.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val mesas = mutableListOf<Mesa>()
+                snapshot.children.forEach { child ->
+                    try {
+                        val m = Mesa(
+                            id = child.child("id").value.toString().toDoubleOrNull()?.toInt() ?: 0,
+                            capacidad = child.child("capacidad").value.toString().toDoubleOrNull()?.toInt() ?: 4,
+                            estado = EstadoMesa.LIBRE
+                        )
+                        if (m.id > 0) mesas.add(m)
+                    } catch (e: Exception) {}
+                }
+                listaMesasConfig = mesas
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
 
     if (mesaSeleccionadaParaPedido != null) {
-        ElegirPlatillosScreen(mesaId = mesaSeleccionadaParaPedido!!) {
-            mesaSeleccionadaParaPedido = null
-        }
+        ElegirPlatillosScreen(
+            mesaId = mesaSeleccionadaParaPedido!!,
+            onBack = { mesaSeleccionadaParaPedido = null },
+            onNavigateToAlertas = onNavigateToAlertas
+        )
     } else {
         Column(
             modifier = Modifier
@@ -117,11 +140,18 @@ fun NuevoPedidoScreen() {
             Text("Todas las mesas", color = Color.Gray, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
 
-            val mesas = (1..12).map { 
-                Mesa(it, if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE, 4) 
+            // Combinar mesas por defecto con las de la base de datos
+            val idsMesasConfig = listaMesasConfig.map { it.id }.toSet()
+            val mesasBase = (1..12).filter { !idsMesasConfig.contains(it) }.map { 
+                Mesa(it, if (mesasOcupadas.contains(it)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE, 4)
             }
+            val mesasNuevas = listaMesasConfig.map { 
+                it.copy(estado = if (mesasOcupadas.contains(it.id)) EstadoMesa.OCUPADA else EstadoMesa.LIBRE)
+            }
+            
+            val todasLasMesas = (mesasBase + mesasNuevas).sortedBy { it.id }
 
-            val mesasFiltradas = mesas.filter { mesa ->
+            val mesasFiltradas = todasLasMesas.filter { mesa ->
                 (selectedFilter == "Todas" || 
                  (selectedFilter == "Libres" && mesa.estado == EstadoMesa.LIBRE) ||
                  (selectedFilter == "Ocupadas" && mesa.estado == EstadoMesa.OCUPADA)) &&
@@ -135,9 +165,12 @@ fun NuevoPedidoScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(mesasFiltradas) { mesa ->
-                    MesaItem(mesa) {
-                        mesaSeleccionadaParaPedido = mesa.id
-                    }
+                    val isOcupada = mesa.estado == EstadoMesa.OCUPADA
+                    MesaItem(mesa = mesa, onClick = {
+                        if (!isOcupada) {
+                            mesaSeleccionadaParaPedido = mesa.id
+                        }
+                    })
                 }
             }
         }
@@ -169,12 +202,13 @@ fun StatusIndicator(text: String, color: Color) {
 
 @Composable
 fun MesaItem(mesa: Mesa, onClick: () -> Unit) {
+    val isOcupada = mesa.estado == EstadoMesa.OCUPADA
     val borderColor = when {
-        mesa.estado == EstadoMesa.OCUPADA -> Color(0xFF10B981)
+        isOcupada -> Color(0xFF10B981)
         else -> Color(0xFF3B82F6)
     }
 
-    val backgroundColor = borderColor.copy(alpha = 0.1f)
+    val backgroundColor = borderColor.copy(alpha = if (isOcupada) 0.05f else 0.1f)
 
     Box(
         modifier = Modifier
@@ -182,7 +216,7 @@ fun MesaItem(mesa: Mesa, onClick: () -> Unit) {
             .clip(RoundedCornerShape(16.dp))
             .background(backgroundColor)
             .border(2.dp, borderColor, RoundedCornerShape(16.dp))
-            .clickable { onClick() }
+            .clickable(enabled = !isOcupada) { onClick() }
             .padding(12.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -191,10 +225,10 @@ fun MesaItem(mesa: Mesa, onClick: () -> Unit) {
                 mesa.id.toString(),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = if (isOcupada) Color.Gray else Color.White
             )
             Text(
-                if (mesa.estado == EstadoMesa.OCUPADA) "Ocupada" else "Libre",
+                if (isOcupada) "Ocupada" else "Libre",
                 fontSize = 12.sp,
                 color = Color.Gray
             )
