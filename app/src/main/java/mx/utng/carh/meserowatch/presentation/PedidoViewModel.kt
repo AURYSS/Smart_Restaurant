@@ -45,11 +45,10 @@ class PedidoViewModel : ViewModel() {
     }
 
     fun posponerPedido(id: String) {
-        // Posponer podría ser cambiar una prioridad o simplemente moverlo al final localmente
-        // pero para persistencia en DB, podríamos cambiar un timestamp
-        val pedido = _pedidos.value.find { it.id == id }
-        pedido?.let {
-            database.child(id).child("estado").setValue(EstadoPedido.EN_PREPARACION)
-        }
+        database.child(id).child("estado").setValue(EstadoPedido.EN_PREPARACION)
+    }
+
+    fun completarEntrega(id: String) {
+        database.child(id).child("estado").setValue("ENTREGADO")
     }
 }

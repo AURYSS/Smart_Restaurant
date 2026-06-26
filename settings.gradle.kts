@@ -24,3 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "MeseroWatch"
 include(":app")
+include(":tv")
+include(":mobile")
