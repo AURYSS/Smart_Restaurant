@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "821251742610",
+    "project_id": "smartrestaurant-6daab",
+    "storage_bucket": "smartrestaurant-6daab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821251742610:android:68621ba6e284a495637f4b",
+        "android_client_info": {
+          "package_name": "mx.utng.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBMnAlgEs7zP4utnvYoaL3C4JuJnV7nNw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
