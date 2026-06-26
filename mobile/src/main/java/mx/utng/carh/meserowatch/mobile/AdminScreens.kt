@@ -239,15 +239,17 @@ fun EstadoMesasScreen() {
         ) {
             Column {
                 Text("Mesas", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                Text("12 mesas · 7 ocupadas · 2 reservadas", color = Color.Gray)
+                Text("Configuración de mesas", color = Color.Gray)
             }
+            // Botón corregido
             Button(
                 onClick = { mostrarNuevaMesa = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text(" Nueva")
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(" Nueva", fontSize = 14.sp)
             }
         }
 

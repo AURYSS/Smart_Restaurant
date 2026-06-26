@@ -16,10 +16,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.google.firebase.database.FirebaseDatabase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
+    var nombre by remember { mutableStateOf("") }
+    var precio by remember { mutableStateOf("") }
+    val database = FirebaseDatabase.getInstance().getReference("menu")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = Color(0xFF1E293B),
@@ -40,18 +45,32 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                 
                 Text("Nombre del platillo *", color = Color.White, fontSize = 14.sp)
                 OutlinedTextField(
-                    value = "", onValueChange = {},
+                    value = nombre, 
+                    onValueChange = { nombre = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Ej. Tacos de pastor", color = Color.Gray) }
+                    placeholder = { Text("Ej. Tacos de pastor", color = Color.Gray) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
                 )
 
                 Spacer(Modifier.height(16.dp))
                 
                 Text("Precio *", color = Color.White, fontSize = 14.sp)
                 OutlinedTextField(
-                    value = "", onValueChange = {},
+                    value = precio, 
+                    onValueChange = { precio = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("0.00", color = Color.Gray) }
+                    placeholder = { Text("0.00", color = Color.Gray) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -60,7 +79,18 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
                     TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
                     Spacer(Modifier.width(16.dp))
                     Button(
-                        onClick = { onDismiss() },
+                        onClick = { 
+                            if (nombre.isNotEmpty() && precio.isNotEmpty()) {
+                                val key = database.push().key ?: ""
+                                database.child(key).setValue(mapOf(
+                                    "id" to key,
+                                    "nombre" to nombre,
+                                    "precio" to (precio.toDoubleOrNull() ?: 0.0),
+                                    "disponible" to true
+                                ))
+                                onDismiss()
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -75,6 +105,9 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
+    var nombre by remember { mutableStateOf("") }
+    val database = FirebaseDatabase.getInstance().getReference("usuarios")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = Color(0xFF1E293B),
@@ -95,23 +128,17 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
                 
                 Text("Nombre completo *", color = Color.White, fontSize = 14.sp)
                 OutlinedTextField(
-                    value = "", onValueChange = {},
+                    value = nombre, 
+                    onValueChange = { nombre = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Ej. Luis Cervantes García", color = Color.Gray) }
+                    placeholder = { Text("Ej. Luis Cervantes García", color = Color.Gray) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
                 )
-
-                Spacer(Modifier.height(16.dp))
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Rol *", color = Color.White, fontSize = 14.sp)
-                        Text("Seleccionar rol...", color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Zona asignada *", color = Color.White, fontSize = 14.sp)
-                        Text("Seleccionar zona...", color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-                    }
-                }
 
                 Spacer(Modifier.height(24.dp))
 
@@ -119,7 +146,13 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
                     TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
                     Spacer(Modifier.width(16.dp))
                     Button(
-                        onClick = { onDismiss() },
+                        onClick = { 
+                            if (nombre.isNotEmpty()) {
+                                val key = database.push().key ?: ""
+                                database.child(key).setValue(mapOf("id" to key, "nombre" to nombre))
+                                onDismiss()
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -134,6 +167,10 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevaMesaDialog(onDismiss: () -> Unit) {
+    var numeroMesa by remember { mutableStateOf("") }
+    var capacidad by remember { mutableStateOf("") }
+    val database = FirebaseDatabase.getInstance().getReference("mesas_config")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = Color(0xFF1E293B),
@@ -154,12 +191,32 @@ fun NuevaMesaDialog(onDismiss: () -> Unit) {
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Número de mesa *", color = Color.White, fontSize = 14.sp)
-                        OutlinedTextField(value = "", onValueChange = {}, placeholder = { Text("Ej. 12", color = Color.Gray) })
+                        Text("Número *", color = Color.White, fontSize = 14.sp)
+                        OutlinedTextField(
+                            value = numeroMesa, 
+                            onValueChange = { numeroMesa = it },
+                            placeholder = { Text("Ej. 12", color = Color.Gray) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF3B82F6),
+                                unfocusedBorderColor = Color.Gray
+                            )
+                        )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Capacidad (personas) *", color = Color.White, fontSize = 14.sp)
-                        OutlinedTextField(value = "", onValueChange = {}, placeholder = { Text("Ej. 4", color = Color.Gray) })
+                        Text("Capacidad *", color = Color.White, fontSize = 14.sp)
+                        OutlinedTextField(
+                            value = capacidad, 
+                            onValueChange = { capacidad = it },
+                            placeholder = { Text("Ej. 4", color = Color.Gray) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF3B82F6),
+                                unfocusedBorderColor = Color.Gray
+                            )
+                        )
                     }
                 }
 
@@ -169,7 +226,17 @@ fun NuevaMesaDialog(onDismiss: () -> Unit) {
                     TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
                     Spacer(Modifier.width(16.dp))
                     Button(
-                        onClick = { onDismiss() },
+                        onClick = { 
+                            if (numeroMesa.isNotEmpty()) {
+                                val num = numeroMesa.toIntOrNull() ?: 0
+                                database.child(num.toString()).setValue(mapOf(
+                                    "id" to num,
+                                    "capacidad" to (capacidad.toIntOrNull() ?: 4),
+                                    "estado" to "LIBRE"
+                                ))
+                                onDismiss()
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
                         shape = RoundedCornerShape(8.dp)
                     ) {
