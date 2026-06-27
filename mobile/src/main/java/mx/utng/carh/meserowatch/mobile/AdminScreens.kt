@@ -3,9 +3,7 @@ package mx.utng.carh.meserowatch.mobile
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -98,6 +96,20 @@ fun AdminDashboardScreen(onNavigateTo: (String) -> Unit) {
                     }
                 }
                 mesasOcupadasCount = ocupadas.size
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Escuchar total de mesas (base 12 + configuradas)
+        databaseMesas.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val idsConfig = mutableSetOf<Int>()
+                snapshot.children.forEach { child ->
+                    val id = child.child("id").value.toString().toDoubleOrNull()?.toInt() ?: 0
+                    if (id > 0) idsConfig.add(id)
+                }
+                val todas = (1..12).toSet() + idsConfig
+                mesasTotalesCount = todas.size
             }
             override fun onCancelled(error: DatabaseError) {}
         })
@@ -813,9 +825,14 @@ fun ZonasAdminScreen() {
     var listaZonas by remember { mutableStateOf<List<Zona>>(emptyList()) }
     var listaUsuarios by remember { mutableStateOf<List<Usuario>>(emptyList()) }
     var mostrarNuevaZona by remember { mutableStateOf(false) }
+    var zonaAEditar by remember { mutableStateOf<Zona?>(null) }
 
     if (mostrarNuevaZona) {
         NuevaZonaDialog(onDismiss = { mostrarNuevaZona = false })
+    }
+
+    if (zonaAEditar != null) {
+        EditarZonaDialog(zona = zonaAEditar!!, onDismiss = { zonaAEditar = null })
     }
 
     LaunchedEffect(Unit) {
@@ -894,7 +911,7 @@ fun ZonasAdminScreen() {
                     } else {
                         zonasClase.forEach { zona ->
                             val personalEnZona = listaUsuarios.filter { it.zonaId == zona.id }
-                            ZonaItem(zona, personalEnZona)
+                            ZonaItem(zona, personalEnZona) { zonaAEditar = zona }
                             Spacer(Modifier.height(12.dp))
                         }
                     }
@@ -909,7 +926,7 @@ fun ZonasAdminScreen() {
                         Spacer(Modifier.height(12.dp))
                         otras.forEach { zona ->
                             val personalEnZona = listaUsuarios.filter { it.zonaId == zona.id }
-                            ZonaItem(zona, personalEnZona)
+                            ZonaItem(zona, personalEnZona) { zonaAEditar = zona }
                             Spacer(Modifier.height(12.dp))
                         }
                     }
@@ -919,14 +936,20 @@ fun ZonasAdminScreen() {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun ZonaItem(zona: Zona, personal: List<Usuario>) {
+fun ZonaItem(zona: Zona, personal: List<Usuario>, onLongClick: () -> Unit) {
     var expandido by remember { mutableStateOf(false) }
     
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().clickable { if (personal.isNotEmpty()) expandido = !expandido }
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { if (personal.isNotEmpty()) expandido = !expandido },
+                onLongClick = onLongClick
+            )
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

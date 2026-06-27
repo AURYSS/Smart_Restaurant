@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.TableBar
@@ -712,6 +714,111 @@ fun NuevaZonaDialog(onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("✓ Guardar zona")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditarZonaDialog(zona: Zona, onDismiss: () -> Unit) {
+    var nombreZona by remember { mutableStateOf(zona.nombreZona) }
+    var estado by remember { mutableStateOf(zona.estadoZona) }
+    val database = FirebaseDatabase.getInstance().getReference("zonas")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = Color(0xFF1E293B),
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier.padding(16.dp).fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(40.dp).background(Color(0xFF3B82F6).copy(0.1f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column {
+                        Text("Gestionar Zona", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Personaliza el nombre y disponibilidad", color = Color.Gray, fontSize = 12.sp)
+                    }
+                }
+                
+                Spacer(Modifier.height(32.dp))
+                
+                Text("Nombre de la zona", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                OutlinedTextField(
+                    value = nombreZona, 
+                    onValueChange = { nombreZona = it },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray.copy(0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                Text("Estado de disponibilidad", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EstadoZona.values().forEach { e ->
+                        val isSelected = estado == e
+                        val color = if (e == EstadoZona.DISPONIBLE) Color(0xFF10B981) else Color(0xFFEF4444)
+                        
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { estado = e },
+                            label = { Text(e.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            leadingIcon = if (isSelected) { { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) } } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = color.copy(0.2f),
+                                selectedLabelColor = color,
+                                selectedLeadingIconColor = color,
+                                labelColor = Color.Gray
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                borderColor = if (isSelected) color else Color.Gray.copy(0.3f),
+                                enabled = true,
+                                selected = isSelected
+                            )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(40.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextButton(
+                        onClick = {
+                            database.child(zona.id).removeValue()
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Eliminar", color = Color(0xFFEF4444))
+                    }
+                    
+                    Button(
+                        onClick = { 
+                            if (nombreZona.isNotEmpty()) {
+                                database.child(zona.id).updateChildren(mapOf(
+                                    "nombreZona" to nombreZona,
+                                    "estadoZona" to estado.name
+                                ))
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1.5f).height(48.dp)
+                    ) {
+                        Text("Guardar Cambios", fontWeight = FontWeight.Bold)
                     }
                 }
             }

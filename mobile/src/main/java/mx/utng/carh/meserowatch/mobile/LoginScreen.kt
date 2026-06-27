@@ -78,6 +78,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(32.dp)
+                .imePadding() // Asegura que el contenido suba con el teclado
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
