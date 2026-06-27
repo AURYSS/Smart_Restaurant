@@ -1,7 +1,11 @@
 package mx.utng.carh.meserowatch.mobile
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -156,8 +162,11 @@ fun AdminDashboardScreen(onNavigateTo: (String) -> Unit) {
                 QuickAccessButton("Historial", Screen.Historial.route, onNavigateTo, Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuickAccessButton("Mesas", Screen.Mesas.route, onNavigateTo, Modifier.weight(1f))
                 QuickAccessButton("Menú", Screen.Menu.route, onNavigateTo, Modifier.weight(1f))
-                QuickAccessButton("Usuarios", Screen.Personal.route, onNavigateTo, Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuickAccessButton("Usuarios", Screen.Personal.route, onNavigateTo, Modifier.fillMaxWidth())
             }
         }
     }
@@ -194,6 +203,16 @@ fun QuickAccessButton(text: String, route: String, onNavigate: (String) -> Unit,
 fun TurnosPersonalScreen() {
     val database = FirebaseDatabase.getInstance().getReference("usuarios")
     var listaUsuarios by remember { mutableStateOf<List<Usuario>>(emptyList()) }
+    var mostrarNuevoUsuario by remember { mutableStateOf(false) }
+    var usuarioAEditar by remember { mutableStateOf<Usuario?>(null) }
+
+    if (mostrarNuevoUsuario) {
+        NuevoUsuarioDialog(onDismiss = { mostrarNuevoUsuario = false })
+    }
+
+    if (usuarioAEditar != null) {
+        EditarUsuarioDialog(usuario = usuarioAEditar!!, onDismiss = { usuarioAEditar = null })
+    }
 
     LaunchedEffect(Unit) {
         database.addValueEventListener(object : ValueEventListener {
@@ -208,7 +227,8 @@ fun TurnosPersonalScreen() {
                             activo = child.child("activo").value as? Boolean ?: false,
                             zonaAsignada = child.child("zonaAsignada").value?.toString() ?: "",
                             fotoEmoji = child.child("fotoEmoji").value?.toString() ?: "👤",
-                            estadoUsuario = EstadoUsuario.valueOf(child.child("estadoUsuario").value?.toString() ?: "ACTIVO")
+                            estadoUsuario = EstadoUsuario.valueOf(child.child("estadoUsuario").value?.toString() ?: "ACTIVO"),
+                            zonaId = child.child("zonaId").value?.toString() ?: ""
                         )
                         usuarios.add(user)
                     } catch (e: Exception) {}
@@ -230,10 +250,15 @@ fun TurnosPersonalScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Turnos del personal", fontSize = 28.sp, color = Color.White, fontWeight = FontWeight.Bold)
-            Button(onClick = { }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6))) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text(" Nuevo")
+            Text("Turnos", fontSize = 28.sp, color = Color.White, fontWeight = FontWeight.Bold)
+            Button(
+                onClick = { mostrarNuevoUsuario = true },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text(" Nuevo", fontSize = 14.sp)
             }
         }
         
@@ -241,18 +266,20 @@ fun TurnosPersonalScreen() {
         
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(listaUsuarios) { usuario ->
-                UsuarioTurnoItem(usuario)
+                UsuarioTurnoItem(usuario) {
+                    usuarioAEditar = usuario
+                }
             }
         }
     }
 }
 
 @Composable
-fun UsuarioTurnoItem(usuario: Usuario) {
+fun UsuarioTurnoItem(usuario: Usuario, onEdit: () -> Unit) {
     Surface(
         color = Color(0xFF1E293B),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable { onEdit() }
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(40.dp).background(Color(0xFF312E81), CircleShape), contentAlignment = Alignment.Center) {
@@ -264,9 +291,13 @@ fun UsuarioTurnoItem(usuario: Usuario) {
                 Text("${usuario.rol} · ${usuario.zonaAsignada}", color = Color.Gray, fontSize = 12.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("8:00 - 16:00", color = Color.Gray, fontSize = 12.sp) // Ejemplo estático
-                val color = if (usuario.activo) Color(0xFF10B981) else Color(0xFFEF4444)
-                Text(if (usuario.activo) "Activo" else "Inactivo", color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Turno rotativo", color = Color.Gray, fontSize = 12.sp)
+                val (statusText, statusColor) = when(usuario.estadoUsuario) {
+                    EstadoUsuario.ACTIVO -> "Activo" to Color(0xFF10B981)
+                    EstadoUsuario.INACTIVO -> "Inactivo" to Color(0xFFEF4444)
+                    EstadoUsuario.EN_DESCANSO -> "En descanso" to Color(0xFFF59E0B)
+                }
+                Text(statusText, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -498,9 +529,10 @@ fun AdminPlatilloItem(platillo: Platillo, onEdit: () -> Unit, onDelete: () -> Un
 }
 
 @Composable
-fun PersonalAdminScreen() {
+fun PersonalAdminScreen(onNavigateToZonas: () -> Unit) {
     var mostrarNuevoUsuario by remember { mutableStateOf(false) }
-    var mostrarNuevaZona by remember { mutableStateOf(false) }
+    var usuarioAEditar by remember { mutableStateOf<Usuario?>(null) }
+    var selectedFilter by remember { mutableStateOf("Todos") }
     val database = FirebaseDatabase.getInstance().getReference("usuarios")
     var listaUsuarios by remember { mutableStateOf<List<Usuario>>(emptyList()) }
 
@@ -508,8 +540,8 @@ fun PersonalAdminScreen() {
         NuevoUsuarioDialog(onDismiss = { mostrarNuevoUsuario = false })
     }
     
-    if (mostrarNuevaZona) {
-        NuevaZonaDialog(onDismiss = { mostrarNuevaZona = false })
+    if (usuarioAEditar != null) {
+        EditarUsuarioDialog(usuario = usuarioAEditar!!, onDismiss = { usuarioAEditar = null })
     }
 
     LaunchedEffect(Unit) {
@@ -525,7 +557,8 @@ fun PersonalAdminScreen() {
                             activo = child.child("activo").value as? Boolean ?: true,
                             zonaAsignada = child.child("zonaAsignada").value?.toString() ?: "Sin zona",
                             fotoEmoji = child.child("fotoEmoji").value?.toString() ?: "👤",
-                            estadoUsuario = EstadoUsuario.valueOf(child.child("estadoUsuario").value?.toString() ?: "ACTIVO")
+                            estadoUsuario = EstadoUsuario.valueOf(child.child("estadoUsuario").value?.toString() ?: "ACTIVO"),
+                            zonaId = child.child("zonaId").value?.toString() ?: ""
                         )
                         usuarios.add(user)
                     } catch (e: Exception) {}
@@ -549,53 +582,64 @@ fun PersonalAdminScreen() {
         ) {
             Column {
                 Text("Usuarios", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                Text("${listaUsuarios.size} usuarios registrados", color = Color.Gray)
+                Text("${listaUsuarios.size} registrados", color = Color.Gray)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
-                    onClick = { mostrarNuevaZona = true },
-                    shape = RoundedCornerShape(12.dp)
+                    onClick = onNavigateToZonas,
+                    modifier = Modifier.height(36.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
                 ) {
-                    Text("Zonas")
+                    Text("Zonas", fontSize = 14.sp)
                 }
                 Button(
                     onClick = { mostrarNuevoUsuario = true },
+                    modifier = Modifier.height(36.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Text(" Nuevo")
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text(" Nuevo", fontSize = 14.sp)
                 }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = "",
-            onValueChange = { },
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
-            placeholder = { Text("Buscar usuario...", color = Color.Gray) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) }
-        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val filtros = listOf("Todos", "Activo", "Inactivo", "En descanso")
+            items(filtros) { filtro ->
+                FilterChip(filtro, selectedFilter == filtro) { selectedFilter = filtro }
+            }
+        }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
+
+        val usuariosFiltrados = if (selectedFilter == "Todos") {
+            listaUsuarios
+        } else {
+            listaUsuarios.filter { it.estadoUsuario.name.equals(selectedFilter.replace(" ", "_"), ignoreCase = true) }
+        }
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(listaUsuarios) { usuario ->
-                UsuarioItem(usuario)
+            items(usuariosFiltrados) { usuario ->
+                UsuarioItem(usuario) {
+                    usuarioAEditar = usuario
+                }
             }
         }
     }
 }
 
 @Composable
-fun UsuarioItem(usuario: Usuario) {
+fun UsuarioItem(usuario: Usuario, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -621,7 +665,7 @@ fun UsuarioItem(usuario: Usuario) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
-            Text(if (usuario.activo) "En turno" else "Fuera de turno", color = Color.Gray, fontSize = 12.sp)
+            Text(if (usuario.activo) "En turno" else "Fuera", color = Color.Gray, fontSize = 12.sp)
         }
     }
 }
@@ -647,7 +691,7 @@ fun EstadoMesasScreen() {
                 snapshot.children.forEach { child ->
                     val mesaId = child.child("mesa").value.toString().toDoubleOrNull()?.toInt() ?: 0
                     val estado = child.child("estado").value?.toString() ?: ""
-                    if (estado != "ENTREGADO") {
+                    if (estado != "ENTREGADO" && estado != "CANCELADO") {
                         ocupadas.add(mesaId)
                     }
                 }
@@ -758,6 +802,176 @@ fun MesaAdminItem(mesa: Mesa) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(mesa.id.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Text(mesa.estado.toString().lowercase(), fontSize = 12.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun ZonasAdminScreen() {
+    val database = FirebaseDatabase.getInstance().getReference("zonas")
+    val databaseUsers = FirebaseDatabase.getInstance().getReference("usuarios")
+    var listaZonas by remember { mutableStateOf<List<Zona>>(emptyList()) }
+    var listaUsuarios by remember { mutableStateOf<List<Usuario>>(emptyList()) }
+    var mostrarNuevaZona by remember { mutableStateOf(false) }
+
+    if (mostrarNuevaZona) {
+        NuevaZonaDialog(onDismiss = { mostrarNuevaZona = false })
+    }
+
+    LaunchedEffect(Unit) {
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val zonas = mutableListOf<Zona>()
+                snapshot.children.forEach { child ->
+                    zonas.add(Zona(
+                        id = child.key ?: "",
+                        nombreZona = child.child("nombreZona").value?.toString() ?: "",
+                        estadoZona = try { EstadoZona.valueOf(child.child("estadoZona").value?.toString() ?: "DISPONIBLE") } catch(e: Exception) { EstadoZona.DISPONIBLE }
+                    ))
+                }
+                listaZonas = zonas
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        databaseUsers.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val users = mutableListOf<Usuario>()
+                snapshot.children.forEach { child ->
+                    try {
+                        users.add(Usuario(
+                            id = child.key ?: "",
+                            nombre = child.child("nombre").value?.toString() ?: "",
+                            zonaId = child.child("zonaId").value?.toString() ?: "",
+                            fotoEmoji = child.child("fotoEmoji").value?.toString() ?: "👤",
+                            activo = child.child("activo").value as? Boolean ?: false
+                        ))
+                    } catch (e: Exception) {}
+                }
+                listaUsuarios = users
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+            .padding(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Zonas", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
+            Button(
+                onClick = { mostrarNuevaZona = true },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                modifier = Modifier.height(36.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text(" Nueva", fontSize = 14.sp)
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        val clasificaciones = listOf("Zona A", "Zona B", "Zona C")
+        
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(clasificaciones) { clase ->
+                Column {
+                    Text(clase, color = Color(0xFF3B82F6), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Spacer(Modifier.height(12.dp))
+                    
+                    val zonasClase = listaZonas.filter { it.nombreZona.contains(clase, ignoreCase = true) }
+                    
+                    if (zonasClase.isEmpty()) {
+                        Text("Sin zonas asignadas", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 16.dp))
+                    } else {
+                        zonasClase.forEach { zona ->
+                            val personalEnZona = listaUsuarios.filter { it.zonaId == zona.id }
+                            ZonaItem(zona, personalEnZona)
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                }
+            }
+            
+            item {
+                val otras = listaZonas.filter { zona -> !clasificaciones.any { c -> zona.nombreZona.contains(c, ignoreCase = true) } }
+                if (otras.isNotEmpty()) {
+                    Column {
+                        Text("Otras Zonas", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Spacer(Modifier.height(12.dp))
+                        otras.forEach { zona ->
+                            val personalEnZona = listaUsuarios.filter { it.zonaId == zona.id }
+                            ZonaItem(zona, personalEnZona)
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ZonaItem(zona: Zona, personal: List<Usuario>) {
+    var expandido by remember { mutableStateOf(false) }
+    
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().clickable { if (personal.isNotEmpty()) expandido = !expandido }
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val statusColor = if (zona.estadoZona == EstadoZona.DISPONIBLE) Color(0xFF10B981) else Color(0xFFEF4444)
+                Box(Modifier.size(12.dp).background(statusColor, CircleShape))
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(zona.nombreZona, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("${personal.size} personas asignadas", color = Color.Gray, fontSize = 12.sp)
+                }
+                if (personal.isNotEmpty()) {
+                    Icon(
+                        imageVector = if (expandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = Color.Gray
+                    )
+                }
+            }
+            
+            AnimatedVisibility(
+                visible = expandido,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+                    Spacer(Modifier.height(12.dp))
+                    personal.forEach { usuario ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        ) {
+                            Text(usuario.fotoEmoji, fontSize = 20.sp)
+                            Spacer(Modifier.width(12.dp))
+                            Text(usuario.nombre, color = Color.White, fontSize = 14.sp)
+                            Spacer(Modifier.weight(1f))
+                            if (usuario.activo) {
+                                Badge(containerColor = Color(0xFF10B981).copy(0.2f), contentColor = Color(0xFF10B981)) {
+                                    Text("En turno", fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

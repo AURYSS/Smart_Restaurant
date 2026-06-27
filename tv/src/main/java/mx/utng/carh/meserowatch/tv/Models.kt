@@ -1,7 +1,7 @@
 package mx.utng.carh.meserowatch.tv
 
 enum class EstadoPedido {
-    EN_PREPARACION, LISTO, ENTREGADO
+    PENDIENTE, EN_PREPARACION, LISTO, ENTREGADO, CANCELADO
 }
 
 data class PlatilloSeleccionado(

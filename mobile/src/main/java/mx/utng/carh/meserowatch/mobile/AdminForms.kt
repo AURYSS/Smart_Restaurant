@@ -460,6 +460,183 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun EditarUsuarioDialog(usuario: Usuario, onDismiss: () -> Unit) {
+    var nombre by remember { mutableStateOf(usuario.nombre) }
+    var rol by remember { mutableStateOf(usuario.rol) }
+    var zonaId by remember { mutableStateOf(usuario.zonaId) }
+    var estado by remember { mutableStateOf(usuario.estadoUsuario) }
+    var expandedRol by remember { mutableStateOf(false) }
+    var expandedZona by remember { mutableStateOf(false) }
+    
+    val database = FirebaseDatabase.getInstance().getReference("usuarios")
+    val databaseZonas = FirebaseDatabase.getInstance().getReference("zonas")
+    var listaZonas by remember { mutableStateOf<List<Zona>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        databaseZonas.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val zonas = mutableListOf<Zona>()
+                snapshot.children.forEach { child ->
+                    zonas.add(Zona(id = child.key ?: "", nombreZona = child.child("nombreZona").value?.toString() ?: ""))
+                }
+                listaZonas = zonas
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = Color(0xFF1E293B),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.padding(16.dp).fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFF3B82F6))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Editar usuario", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Modificar información del personal", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+                
+                Spacer(Modifier.height(24.dp))
+                
+                Text("Nombre completo *", color = Color.White, fontSize = 14.sp)
+                OutlinedTextField(
+                    value = nombre, 
+                    onValueChange = { nombre = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color.Gray
+                    )
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Rol *", color = Color.White, fontSize = 14.sp)
+                        ExposedDropdownMenuBox(
+                            expanded = expandedRol,
+                            onExpandedChange = { expandedRol = !expandedRol }
+                        ) {
+                            OutlinedTextField(
+                                value = rol.name,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRol) },
+                                modifier = Modifier.menuAnchor(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedRol,
+                                onDismissRequest = { expandedRol = false }
+                            ) {
+                                RolUsuario.values().forEach { selectionOption ->
+                                    DropdownMenuItem(
+                                        text = { Text(selectionOption.name) },
+                                        onClick = {
+                                            rol = selectionOption
+                                            expandedRol = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Zona *", color = Color.White, fontSize = 14.sp)
+                        ExposedDropdownMenuBox(
+                            expanded = expandedZona,
+                            onExpandedChange = { expandedZona = !expandedZona }
+                        ) {
+                            OutlinedTextField(
+                                value = listaZonas.find { it.id == zonaId }?.nombreZona ?: "Seleccionar...",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedZona) },
+                                modifier = Modifier.menuAnchor(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedZona,
+                                onDismissRequest = { expandedZona = false }
+                            ) {
+                                listaZonas.forEach { zona ->
+                                    DropdownMenuItem(
+                                        text = { Text(zona.nombreZona) },
+                                        onClick = {
+                                            zonaId = zona.id
+                                            expandedZona = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Text("Estado *", color = Color.White, fontSize = 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EstadoUsuario.values().forEach { e ->
+                        val isSelected = estado == e
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { estado = e },
+                            label = { Text(e.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF3B82F6),
+                                labelColor = if (isSelected) Color.White else Color.Gray
+                            )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+                    Spacer(Modifier.width(16.dp))
+                    Button(
+                        onClick = { 
+                            if (nombre.isNotEmpty()) {
+                                database.child(usuario.id).updateChildren(mapOf(
+                                    "nombre" to nombre,
+                                    "rol" to rol.name,
+                                    "activo" to (estado == EstadoUsuario.ACTIVO),
+                                    "estadoUsuario" to estado.name,
+                                    "zonaId" to zonaId,
+                                    "zonaAsignada" to (listaZonas.find { it.id == zonaId }?.nombreZona ?: "")
+                                ))
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("✓ Actualizar")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun NuevaZonaDialog(onDismiss: () -> Unit) {
     var nombreZona by remember { mutableStateOf("") }
     var estadoInicial by remember { mutableStateOf(EstadoZona.DISPONIBLE) }

@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Login : Screen("login", "Login", Icons.Default.Lock)
+    object Register : Screen("register", "Registro", Icons.Default.AppRegistration)
     object InicioAdmin : Screen("inicio_admin", "Inicio", Icons.Default.Home)
     object Turnos : Screen("turnos", "Turnos", Icons.Default.Schedule)
     object Historial : Screen("historial", "Pedidos", Icons.Default.History)
@@ -26,6 +27,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Alertas : Screen("alertas", "Alertas", Icons.Default.Notifications)
     object Menu : Screen("menu", "Menú", Icons.Default.RestaurantMenu)
     object Personal : Screen("personal", "Usuarios", Icons.Default.Group)
+    object Zonas : Screen("zonas", "Zonas", Icons.Default.TableBar)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +38,7 @@ fun AppNavigation() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Definir qué pestañas ve cada quién (Basado en imagen Admin)
-    val adminItems = listOf(Screen.InicioAdmin, Screen.Turnos, Screen.Historial, Screen.Personal)
+    val adminItems = listOf(Screen.InicioAdmin, Screen.Mesas, Screen.Turnos, Screen.Historial, Screen.Personal)
     val userItems = listOf(Screen.Nuevo, Screen.Alertas, Screen.Menu)
     
     val currentItems = if (SessionManager.isAdmin) adminItems else userItems
@@ -67,7 +69,7 @@ fun AppNavigation() {
             }
         },
         bottomBar = {
-            if (currentRoute != Screen.Login.route) {
+            if (currentRoute != Screen.Login.route && currentRoute != Screen.Zonas.route) {
                 NavigationBar(
                     containerColor = Color(0xFF0F172A),
                     contentColor = Color.White
@@ -101,12 +103,29 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Login.route) { 
-                LoginScreen(onLoginSuccess = {
-                    val startRoute = if (SessionManager.isAdmin) Screen.InicioAdmin.route else Screen.Nuevo.route
-                    navController.navigate(startRoute) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                LoginScreen(
+                    onLoginSuccess = {
+                        val startRoute = if (SessionManager.isAdmin) Screen.InicioAdmin.route else Screen.Nuevo.route
+                        navController.navigate(startRoute) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToRegister = {
+                        navController.navigate(Screen.Register.route)
                     }
-                }) 
+                ) 
+            }
+            composable(Screen.Register.route) {
+                RegisterScreen(
+                    onRegisterSuccess = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Register.route) { inclusive = true }
+                        }
+                    },
+                    onBackToLogin = {
+                        navController.popBackStack()
+                    }
+                )
             }
             composable(Screen.InicioAdmin.route) { 
                 AdminDashboardScreen(
@@ -126,7 +145,10 @@ fun AppNavigation() {
             composable(Screen.MisPedidos.route) { Text("Mis Pedidos Screen", color = Color.White) }
             composable(Screen.Mesas.route) { EstadoMesasScreen() }
             composable(Screen.Menu.route) { MenuAdminScreen() }
-            composable(Screen.Personal.route) { PersonalAdminScreen() }
+            composable(Screen.Personal.route) { 
+                PersonalAdminScreen(onNavigateToZonas = { navController.navigate(Screen.Zonas.route) }) 
+            }
+            composable(Screen.Zonas.route) { ZonasAdminScreen() }
         }
     }
 }

@@ -44,7 +44,7 @@ fun NuevoPedidoScreen(onNavigateToAlertas: () -> Unit) {
                 snapshot.children.forEach { child ->
                     val mesaId = child.child("mesa").value.toString().toDoubleOrNull()?.toInt() ?: 0
                     val estado = child.child("estado").value?.toString() ?: ""
-                    if (estado != "ENTREGADO") {
+                    if (estado != "ENTREGADO" && estado != "CANCELADO") {
                         ocupadas.add(mesaId)
                     }
                 }

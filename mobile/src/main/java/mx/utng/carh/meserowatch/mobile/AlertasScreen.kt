@@ -81,10 +81,14 @@ fun AlertasScreen() {
         Spacer(Modifier.height(24.dp))
 
         var selectedFilter by remember { mutableStateOf("Todos") }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip("Todos", selectedFilter == "Todos") { selectedFilter = "Todos" }
-            FilterChip("Listos", selectedFilter == "Listos") { selectedFilter = "Listos" }
-            FilterChip("En cocina", selectedFilter == "En cocina") { selectedFilter = "En cocina" }
+        androidx.compose.foundation.lazy.LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val filtros = listOf("Todos", "Listos", "En cocina", "Cancelados")
+            items(filtros) { filtro ->
+                FilterChip(filtro, selectedFilter == filtro) { selectedFilter = filtro }
+            }
         }
 
         Spacer(Modifier.height(24.dp))
@@ -92,6 +96,7 @@ fun AlertasScreen() {
         val pedidosFiltrados = when(selectedFilter) {
             "Listos" -> pedidos.filter { it.estado == EstadoPedido.LISTO }
             "En cocina" -> pedidos.filter { it.estado == EstadoPedido.EN_PREPARACION }
+            "Cancelados" -> pedidos.filter { it.estado == EstadoPedido.CANCELADO }
             else -> pedidos
         }
 
@@ -125,7 +130,19 @@ fun DetallePedidoDialog(pedido: Pedido, onDismiss: () -> Unit) {
                 
                 Spacer(Modifier.height(16.dp))
                 Text("Estado:", color = Color.Gray, fontSize = 14.sp)
-                Text(pedido.estado.toString(), color = if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981) else Color.White, fontWeight = FontWeight.Bold)
+                
+                val statusColor = when(pedido.estado) {
+                    EstadoPedido.LISTO -> Color(0xFF10B981)
+                    EstadoPedido.CANCELADO -> Color(0xFFEF4444)
+                    EstadoPedido.EN_PREPARACION -> Color(0xFFF59E0B)
+                    else -> Color.White
+                }
+                
+                Text(
+                    pedido.estado.name.lowercase().replaceFirstChar { it.uppercase() }, 
+                    color = statusColor, 
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(Modifier.height(24.dp))
                 Button(
@@ -142,6 +159,13 @@ fun DetallePedidoDialog(pedido: Pedido, onDismiss: () -> Unit) {
 
 @Composable
 fun AlertaItem(pedido: Pedido, onClick: () -> Unit) {
+    val (statusText, statusColor) = when(pedido.estado) {
+        EstadoPedido.LISTO -> "Listo" to Color(0xFF10B981)
+        EstadoPedido.CANCELADO -> "Cancelado" to Color(0xFFEF4444)
+        EstadoPedido.EN_PREPARACION -> "Cocina" to Color(0xFFF59E0B)
+        else -> pedido.estado.name to Color.Gray
+    }
+
     Surface(
         color = Color(0xFF1E293B),
         shape = RoundedCornerShape(16.dp),
@@ -154,10 +178,7 @@ fun AlertaItem(pedido: Pedido, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(12.dp)
-                    .background(
-                        if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981) else Color.Gray,
-                        androidx.compose.foundation.shape.CircleShape
-                    )
+                    .background(statusColor, androidx.compose.foundation.shape.CircleShape)
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -166,13 +187,13 @@ fun AlertaItem(pedido: Pedido, onClick: () -> Unit) {
             }
             Box(
                 modifier = Modifier.background(
-                    if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981).copy(0.1f) else Color.Gray.copy(0.1f),
+                    statusColor.copy(0.1f),
                     RoundedCornerShape(8.dp)
                 ).padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 Text(
-                    if (pedido.estado == EstadoPedido.LISTO) "Listo" else "Cocina",
-                    color = if (pedido.estado == EstadoPedido.LISTO) Color(0xFF10B981) else Color.Gray,
+                    statusText,
+                    color = statusColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
                 )

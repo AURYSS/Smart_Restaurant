@@ -19,6 +19,60 @@ import androidx.wear.compose.material.ListHeader
 import androidx.wear.compose.material.Text
 
 @Composable
+fun PantallaInicio(
+    cantidadListos: Int,
+    onVerLista: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF2C2C2C)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "MeseroWatch",
+                color = Color.Cyan,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(Modifier.height(8.dp))
+            
+            Text(
+                if (cantidadListos > 0) "¡Tienes pedidos!" else "Sin pedidos",
+                textAlign = TextAlign.Center,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (cantidadListos > 0) Color.Green else Color.White
+            )
+
+            if (cantidadListos > 0) {
+                Text(
+                    "$cantidadListos mesas listas",
+                    fontSize = 12.sp,
+                    color = Color.LightGray
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Chip(
+                onClick = onVerLista,
+                label = { Text("Ver Mesas", color = Color.White) },
+                colors = ChipDefaults.chipColors(
+                    backgroundColor = Color(0xFF444444)
+                )
+            )
+        }
+    }
+}
+
+@Composable
 fun PantallaNotificacion(
     pedido: Pedido,
     onVerLista: () -> Unit
@@ -26,7 +80,7 @@ fun PantallaNotificacion(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color(0xFF2C2C2C)),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -34,52 +88,37 @@ fun PantallaNotificacion(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
-            Text("🔔", fontSize = 28.sp)
+            Text("🔔", fontSize = 32.sp)
 
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "Mesa ${pedido.mesa} lista",
-                color = Color(0xFF7B61FF),
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                text = "MESA ${pedido.mesa}",
+                color = Color(0xFFBB86FC),
+                fontWeight = FontWeight.Black,
+                fontSize = 22.sp,
                 textAlign = TextAlign.Center
             )
 
             Text(
-                text = "Listo para entregar",
+                text = "¡LISTO AHORA!",
                 color = Color.White,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
             Chip(
                 onClick = onVerLista,
                 label = {
-                    Text(
-                        "Ver lista de pedidos",
-                        fontSize = 11.sp,
-                        color = Color.White
-                    )
+                    Text("Ver Pedidos", fontSize = 12.sp)
                 },
                 colors = ChipDefaults.chipColors(
-                    backgroundColor = Color(0xFF2A2A2A)
+                    backgroundColor = Color(0xFF444444)
                 )
             )
-
-            Spacer(Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(Color(0xFF00C853), shape = CircleShape)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text("sensor activo", fontSize = 10.sp, color = Color.Gray)
-            }
         }
     }
 }
@@ -94,20 +133,20 @@ fun PantallaLista(
     ScalingLazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color(0xFF121212)),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 32.dp)
     ) {
         item {
             ListHeader {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "Pedidos listos",
-                        color = Color(0xFF7B61FF),
+                        "PEDIDOS LISTOS",
+                        color = Color.Cyan,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
                     Text(
-                        "$listos mesas",
+                        "$listos mesas esperando",
                         color = Color.Gray,
                         fontSize = 11.sp
                     )
@@ -115,7 +154,7 @@ fun PantallaLista(
             }
         }
 
-        items(pedidos) { pedido ->
+        items(pedidos.filter { it.estado == EstadoPedido.LISTO }) { pedido ->
             TarjetaPedido(pedido = pedido, onConfirmar = onConfirmar)
         }
     }
@@ -123,13 +162,11 @@ fun PantallaLista(
 
 @Composable
 fun TarjetaPedido(pedido: Pedido, onConfirmar: (String) -> Unit) {
-    val esListo = pedido.estado == EstadoPedido.LISTO
-
     Chip(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 2.dp),
-        onClick = { if (esListo) onConfirmar(pedido.id) },
+        onClick = { onConfirmar(pedido.id) },
         label = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -141,26 +178,24 @@ fun TarjetaPedido(pedido: Pedido, onConfirmar: (String) -> Unit) {
                         "Mesa ${pedido.mesa}",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        fontSize = 14.sp
                     )
                     Text(
-                        pedido.descripcion,
-                        color = Color.Gray,
+                        pedido.descripcion.take(15) + "...",
+                        color = Color.LightGray,
                         fontSize = 10.sp
                     )
                 }
-                if (esListo) {
-                    Text(
-                        "listo",
-                        color = Color(0xFF00C853),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "OK",
+                    color = Color.Green,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
         },
         colors = ChipDefaults.chipColors(
-            backgroundColor = if (esListo) Color(0xFF1A3A1A) else Color(0xFF2A2A2A)
+            backgroundColor = Color(0xFF1E3A1E)
         )
     )
 }

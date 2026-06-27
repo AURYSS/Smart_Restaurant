@@ -174,7 +174,8 @@ fun KitchenScreen() {
                         pedidoSeleccionado = null
                     },
                     onEliminar = {
-                        database.child(it.id).removeValue()
+                        // Cambiamos a CANCELADO en lugar de eliminar físicamente para que el mobile se entere y libere la mesa
+                        database.child(it.id).child("estado").setValue("CANCELADO")
                         pedidoSeleccionado = null
                     }
                 )

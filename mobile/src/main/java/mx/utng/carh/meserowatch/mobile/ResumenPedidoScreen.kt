@@ -113,12 +113,15 @@ fun ResumenPedidoScreen(
                     descBuilder.append(" ")
                 }
 
+                val total = items.sumOf { it.precio * it.cantidad }
+                
                 val nuevoPedido = hashMapOf(
                     "id" to nuevoPedidoKey,
                     "mesa" to mesaId.toLong(),
                     "descripcion" to descBuilder.toString().trim(),
                     "nota" to "Notas por instancia incluidas en descripción",
                     "estado" to "EN_PREPARACION",
+                    "total" to total,
                     "timestamp" to ServerValue.TIMESTAMP
                 )
                 database.child(nuevoPedidoKey).setValue(nuevoPedido).addOnCompleteListener {
