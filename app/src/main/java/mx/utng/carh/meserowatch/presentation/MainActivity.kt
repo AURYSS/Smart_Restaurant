@@ -18,7 +18,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
@@ -33,6 +32,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: PedidoViewModel by viewModels()
     private val CHANNEL_ID = "meserowatch_notifications"
+    private var gestureDetector: WristGestureDetector? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -42,6 +42,27 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        
+        // Inicialización de Sensor de Muñeca
+        gestureDetector = WristGestureDetector(
+            context = this,
+            onGiroArriba = {
+                val pedidoAConfirmar = viewModel.pedidos.value.firstOrNull { it.estado == EstadoPedido.LISTO }
+                pedidoAConfirmar?.let { 
+                    Log.d("MeseroWatchWear", "Gesto detectado: Confirmando Mesa ${it.mesa} (ID: ${it.id})")
+                    viewModel.confirmarEntrega(it.id)
+                    vibrarConfirmacion()
+                } ?: Log.d("MeseroWatchWear", "Gesto detectado pero no hay pedidos LISTOS")
+            },
+            onGiroAbajo = {
+                val pedidoAPosponer = viewModel.pedidos.value.firstOrNull { it.estado == EstadoPedido.LISTO }
+                pedidoAPosponer?.let { 
+                    Log.d("MeseroWatchWear", "Gesto detectado: Posponiendo Mesa ${it.mesa}")
+                    viewModel.posponerPedido(it.id)
+                    vibrarConfirmacion()
+                }
+            }
+        )
         
         try {
             createNotificationChannel()
@@ -60,7 +81,7 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(listos.size) {
                     if (listos.isNotEmpty()) {
-                        vibrarApp()
+                        vibrarAlerta()
                         mostrarNotificacion(listos.last().mesa)
                         navController.navigate("notificacion") { launchSingleTop = true }
                     }
@@ -97,11 +118,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun vibrarApp() {
+    private fun vibrarAlerta() {
         try {
             val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if (v.hasVibrator()) {
+                // Alerta larga para nuevos pedidos
                 v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 500, 200, 500), -1))
+            }
+        } catch (e: Exception) { }
+    }
+
+    private fun vibrarConfirmacion() {
+        try {
+            val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            if (v.hasVibrator()) {
+                // Vibración corta para confirmar el gesto
+                v.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
             }
         } catch (e: Exception) { }
     }
@@ -112,7 +144,7 @@ class MainActivity : ComponentActivity() {
             val builder = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("Mesa $mesa LISTA")
-                .setContentText("Pedido listo")
+                .setContentText("Pedido listo para entrega")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
             manager.notify(mesa, builder.build())
@@ -125,5 +157,15 @@ class MainActivity : ComponentActivity() {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        gestureDetector?.iniciar()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        gestureDetector?.detener()
     }
 }
