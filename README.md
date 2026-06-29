@@ -1,55 +1,62 @@
 # MeseroWatch 🍽️⌚
 
-**Sistema Integral de Gestión Restaurantera Multiplataforma**
+**Estudiantes:** Cecilia Aurora Robelo Hernández, Bryan Emilio Arredondo López, José Armando Ruano Mascorro  
+**Grupo:** GIDS6093-E
 
-MeseroWatch es un ecosistema de aplicaciones diseñado para optimizar la comunicación y operación de restaurantes en tiempo real. El sistema integra tres plataformas sincronizadas mediante Firebase para ofrecer una experiencia fluida entre meseros, cocineros y administradores.
+## 🎯 Objetivo
+Desarrollar un ecosistema digital integral que optimice la gestión operativa de un restaurante mediante la sincronización en tiempo real entre el personal de servicio (meseros), el área de producción (cocina) y la administración. El sistema utiliza dispositivos móviles, relojes inteligentes (Wear OS) y Android TV para reducir tiempos de espera y mejorar la experiencia del cliente.
 
----
+## 📝 Descripción de las Funcionalidades
 
-## 🚀 Funcionalidades Principales
-
-### 📱 Módulo Móvil (Meseros y Administradores)
-*   **Seguridad Avanzada:** Pantalla de Login y Registro con validación de requisitos de contraseña en tiempo real (longitud, números, mayúsculas y caracteres especiales).
-*   **Dashboard Dinámico:** Contador inteligente de ocupación de mesas (ej. 0/15) que se actualiza automáticamente al agregar nuevas mesas.
-*   **Gestión de Zonas (UX Moderna):** 
-    *   Clasificación de zonas en categorías A, B y C.
-    *   Vistas expandibles para visualizar el personal asignado a cada área.
-    *   Edición y eliminación de zonas mediante pulsación larga (Long-press).
-*   **Control de Pedidos:** Historial con visualización de montos totales y estados detallados (Cocina, Listo, Cancelado).
+### 📱 Módulo Móvil (Admin & Mesero)
+*   **Seguridad Avanzada:** Pantalla de registro y login con validación de requisitos de contraseña en tiempo real (mayúsculas, números y caracteres especiales).
+*   **UX del Teclado:** Adaptación automática de la interfaz (`imePadding`) para evitar que el teclado oculte los campos de entrada.
+*   **Control de Comandas:** Creación de pedidos con cálculo automático de totales y sincronización instantánea con la cocina.
+*   **Dashboard Administrativo:** Panel con indicadores dinámicos de ventas y contador inteligente de ocupación de mesas (ej. 0/15).
+*   **Gestión de Zonas (Diseño Moderno):** Clasificación de zonas en categorías A, B y C con tarjetas expandibles para visualizar el personal y edición mediante pulsación larga (Long-press).
 
 ### ⌚ Módulo Wear OS (Reloj Inteligente)
-*   **Notificaciones Instantáneas:** Alerta vibratoria y visual inmediata cuando un pedido es marcado como "Listo" en cocina.
-*   **Control Manos Libres (Sensores):**
-    *   **Giro Arriba:** Confirma la entrega del pedido a la mesa mediante el giroscopio.
-    *   **Giro Abajo:** Pospone la alerta si el mesero está ocupado.
-*   **Vibración Háptica:** Diferenciación entre alertas de nuevos pedidos y confirmación de gestos.
+*   **Notificaciones de Sistema:** Alertas visuales y vibratorias inmediatas cuando un pedido está listo en cocina.
+*   **Control Manos Libres (Sensores):** Integración con el giroscopio para marcar pedidos como "Entregado" mediante un giro de muñeca hacia arriba o posponerlos con un giro hacia abajo.
+*   **Vibración Háptica:** Patrones de vibración diferenciados para alertas de cocina y confirmación de gestos.
 
-### 📺 Módulo TV (Cocina)
-*   **Gestión de Comandas:** Visualización clara de pedidos entrantes con notas especiales e imágenes.
-*   **Sincronización:** Botones para marcar pedidos como "Listos" o "Cancelados", liberando automáticamente las mesas en el sistema móvil.
+### 📺 Módulo TV (Panel de Cocina)
+*   **Monitor de Producción:** Visualización de pedidos entrantes con imágenes de platillos y notas especiales.
+*   **Gestión de Estados:** Sincronización global que libera automáticamente la mesa en el móvil al completar o cancelar un pedido.
 
----
+## 🛠️ Tecnologías Utilizadas
+*   **Lenguaje:** Kotlin 2.2.10
+*   **Interfaz de Usuario:** Jetpack Compose (Material 3) y Compose for Wear OS.
+*   **Backend:** Firebase Realtime Database (Sincronización NoSQL en tiempo real).
+*   **Sensores:** Giroscopio para detección de movimientos en Wear OS.
+*   **Librerías Clave:** 
+    *   `Coil`: Carga asíncrona de imágenes.
+    *   `Navigation Compose`: Flujo entre pantallas.
+    *   `Google Services`: Conexión con servicios de Firebase.
 
-## 🛠️ Stack Tecnológico
-*   **Lenguaje:** Kotlin 2.0+
-*   **UI Framework:** Jetpack Compose / Compose for Wear OS
-*   **Backend:** Firebase Realtime Database
-*   **Arquitectura:** MVVM (Model-View-ViewModel)
-*   **Hardware:** Integración de Giroscopio y Motores de Vibración (Haptics)
-*   **Librerías:** Coil (Imágenes), Navigation Compose, Google Services
+## 🚀 Instrucciones para Ejecutar el Proyecto
 
----
-
-## 🎮 Guía de Pruebas en Emulador (Wear OS)
-Para simular los gestos del reloj sin un dispositivo físico:
-1.  En el emulador, abre **Extended Controls (...)**.
-2.  Ve a **Virtual Sensors** > **Device Pose**.
-3.  Mueve rápidamente el eje **Z-Rot** o **Y-Rot**.
-4.  Observa en el **Logcat** (filtro: `MeseroWatchWear`) cómo el sistema detecta el gesto y actualiza Firebase automáticamente.
-
----
+1.  **Descarga:** Clonar el repositorio en su equipo local.
+2.  **Configuración de Firebase:** 
+    *   Descargar el archivo `google-services.json` desde la consola de Firebase.
+    *   Colocar una copia en las carpetas: `/app`, `/mobile` y `/tv`.
+3.  **Preparación de Base de Datos:**
+    *   Habilitar **Realtime Database** en Firebase.
+    *   Configurar las reglas de seguridad como `".read": true` y `".write": true` para pruebas.
+4.  **Ejecución:**
+    *   Compilar y ejecutar el módulo `:mobile` en un smartphone Android.
+    *   Ejecutar el módulo `:app` en un emulador de Wear OS (asegurarse de tener activado el giroscopio en los Virtual Sensors).
+    *   Ejecutar el módulo `:tv` en un emulador de Android TV.
 
 ## 📦 Estructura del Proyecto
 *   `/mobile`: Aplicación para teléfonos Android (Admin/Mesero).
 *   `/app`: Aplicación para Wear OS (Reloj inteligente).
 *   `/tv`: Aplicación para Android TV (Pantalla de cocina).
+
+## 📸 Capturas de Pantalla
+
+> [!TIP]
+> Puedes agregar tus capturas aquí usando el formato: `![Nombre](ruta_de_la_imagen.png)`
+
+---
+© 2026 MeseroWatch - Sistema de Gestión Inteligente.
