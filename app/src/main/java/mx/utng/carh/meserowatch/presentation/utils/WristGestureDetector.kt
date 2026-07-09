@@ -1,4 +1,4 @@
-package mx.utng.carh.meserowatch.presentation
+package mx.utng.carh.meserowatch.presentation.utils
 
 import android.content.Context
 import android.hardware.Sensor

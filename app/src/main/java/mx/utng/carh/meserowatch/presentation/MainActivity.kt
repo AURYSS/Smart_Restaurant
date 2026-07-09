@@ -27,6 +27,12 @@ import androidx.wear.compose.material.*
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import mx.utng.carh.meserowatch.domain.model.EstadoPedido
+import mx.utng.carh.meserowatch.presentation.ui.PantallaInicio
+import mx.utng.carh.meserowatch.presentation.ui.PantallaLista
+import mx.utng.carh.meserowatch.presentation.ui.PantallaNotificacion
+import mx.utng.carh.meserowatch.presentation.utils.WristGestureDetector
+import mx.utng.carh.meserowatch.presentation.viewmodel.PedidoViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -40,15 +46,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        
+
         // Inicialización de Sensor de Muñeca
         gestureDetector = WristGestureDetector(
             context = this,
             onGiroArriba = {
                 val pedidoAConfirmar = viewModel.pedidos.value.firstOrNull { it.estado == EstadoPedido.LISTO }
-                pedidoAConfirmar?.let { 
+                pedidoAConfirmar?.let {
                     Log.d("MeseroWatchWear", "Gesto detectado: Confirmando Mesa ${it.mesa} (ID: ${it.id})")
                     viewModel.confirmarEntrega(it.id)
                     vibrarConfirmacion()
@@ -56,14 +62,14 @@ class MainActivity : ComponentActivity() {
             },
             onGiroAbajo = {
                 val pedidoAPosponer = viewModel.pedidos.value.firstOrNull { it.estado == EstadoPedido.LISTO }
-                pedidoAPosponer?.let { 
+                pedidoAPosponer?.let {
                     Log.d("MeseroWatchWear", "Gesto detectado: Posponiendo Mesa ${it.mesa}")
                     viewModel.posponerPedido(it.id)
                     vibrarConfirmacion()
                 }
             }
         )
-        
+
         try {
             createNotificationChannel()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -122,20 +128,18 @@ class MainActivity : ComponentActivity() {
         try {
             val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if (v.hasVibrator()) {
-                // Alerta larga para nuevos pedidos
                 v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 500, 200, 500), -1))
             }
-        } catch (e: Exception) { }
+        } catch (_: Exception) {}
     }
 
     private fun vibrarConfirmacion() {
         try {
             val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if (v.hasVibrator()) {
-                // Vibración corta para confirmar el gesto
                 v.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
             }
-        } catch (e: Exception) { }
+        } catch (_: Exception) {}
     }
 
     private fun mostrarNotificacion(mesa: Int) {
@@ -148,7 +152,7 @@ class MainActivity : ComponentActivity() {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
             manager.notify(mesa, builder.build())
-        } catch (e: Exception) { }
+        } catch (_: Exception) {}
     }
 
     private fun createNotificationChannel() {
