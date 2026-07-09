@@ -1,4 +1,4 @@
-package mx.utng.carh.meserowatch.tv
+package mx.utng.carh.meserowatch.tv.domain.model
 
 enum class EstadoPedido {
     PENDIENTE, EN_PREPARACION, LISTO, ENTREGADO, CANCELADO
