@@ -1,7 +1,10 @@
 # MeseroWatch 🍽️⌚
 
-**Estudiantes:** Cecilia Aurora Robelo Hernández, Bryan Emilio Arredondo López, José Armando Ruano Mascorro  
-**Grupo:** GIDS6093-E
+**Estudiantes:**
+* **Cecilia Aurora Robelo Hernández** 
+* **Bryan Emilio Arredondo López** 
+* **José Armando Ruano Mascorro**
+* **Grupo:** GIDS6093-E
 
 ## 🎯 Objetivo
 Desarrollar un ecosistema digital integral que optimice la gestión operativa de un restaurante mediante la sincronización en tiempo real entre el personal de servicio (meseros), el área de producción (cocina) y la administración. El sistema utiliza dispositivos móviles, relojes inteligentes (Wear OS) y Android TV para reducir tiempos de espera y mejorar la experiencia del cliente.
@@ -54,28 +57,40 @@ El ecosistema está dividido en tres módulos principales, utilizando una arquit
 
 ```text
 MeseroWatch/
-├── mobile/                      # Aplicación para teléfonos (Admin/Mesero)
+├── mobile/                      # Módulo Smartphone (Admin/Mesero)
 │   └── src/main/java/.../mobile/
-│       ├── data/                # Repositorios y fuentes de datos (Firebase)
-│       ├── domain/              # Modelos de negocio e interfaces
-│       └── presentation/        # Capa de interfaz de usuario y lógica
+│       ├── data/                # Persistencia y red
+│       │   ├── repository/      # Implementación de repositorios
+│       │   └── source/          # Fuentes de datos (Firebase)
+│       ├── domain/              # Lógica de negocio pura
+│       │   ├── model/           # Entidades (Pedido, Mesa, Usuario)
+│       │   └── repository/      # Interfaces de abstracción
+│       └── presentation/        # UI y Controladores
 │           ├── di/              # Inyección de dependencias (AppModule)
-│           ├── ui/              # Pantallas Compose (Login, Mesas, Zonas, etc.)
-│           ├── viewmodel/       # Gestión de estados (ViewModels)
-│           └── navigation/      # Rutas y flujo de navegación
-├── app/                         # Aplicación para Wear OS (Reloj inteligente)
+│           ├── ui/              # Pantallas Compose por característica
+│           │   ├── login/       # Acceso y seguridad
+│           │   ├── mesas/       # Gestión de ocupación
+│           │   ├── zonas/       # Clasificación y tarjetas expandibles
+│           │   └── nuevopedido/ # Creación de comandas
+│           ├── viewmodel/       # ViewModels de cada flujo
+│           └── navigation/      # Grafo de navegación (NavHost)
+├── app/                         # Módulo Wear OS (Reloj inteligente)
 │   └── src/main/java/.../
-│       └── presentation/        # UI de Wear OS y manejo de sensores
-└── tv/                          # Aplicación para Android TV (Pantalla de cocina)
+│       └── presentation/        # Interfaz y sensores
+│           ├── theme/           # Estilos Wear Material
+│           ├── GestureDetector  # Procesamiento del Giroscopio
+│           ├── PedidoViewModel  # Estado de alertas en el reloj
+│           └── Pantallas.kt     # UI optimizada para dispositivos redondos
+└── tv/                          # Módulo Android TV (Monitor de cocina)
     └── src/main/java/.../tv/
-        ├── data/                # Sincronización de pedidos de cocina
-        └── presentation/        # Monitor de producción visual
+        ├── data/                # Repositorios de sincronización
+        ├── domain/              # Casos de uso de producción
+        │   ├── model/           # Modelos de pedidos de cocina
+        │   └── usecase/         # Lógica de actualización de estados
+        └── presentation/        # UI de monitorización
+            └── kitchen/         # Pantallas de gestión de cocina
+                ├── components/  # Componentes visuales para TV
+                └── KitchenScreen.kt
 ```
-
-## 📸 Capturas de Pantalla
-
-> [!TIP]
-> Puedes agregar tus capturas aquí usando el formato: `![Nombre](ruta_de_la_imagen.png)`
-
 ---
 © 2026 MeseroWatch - Sistema de Gestión Inteligente.
