@@ -1,4 +1,4 @@
-package mx.utng.carh.meserowatch.mobile
+package mx.utng.carh.meserowatch.mobile.presentation.ui.register
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -20,28 +20,30 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.google.firebase.database.FirebaseDatabase
+import mx.utng.carh.meserowatch.mobile.domain.model.RolUsuario
+import mx.utng.carh.meserowatch.mobile.presentation.ui.login.ValidationRow
+import mx.utng.carh.meserowatch.mobile.presentation.viewmodel.RegisterViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
-    var user by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var rol by remember { mutableStateOf(RolUsuario.MESERO) }
-    var error by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var expandedRol by remember { mutableStateOf(false) }
+fun RegisterScreen(
+    onRegisterSuccess: () -> Unit,
+    onBackToLogin: () -> Unit,
+    viewModel: RegisterViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
-    // Reglas de validación
-    val hasMinLength = password.length >= 8
-    val hasNumber = password.any { it.isDigit() }
-    val hasUppercase = password.any { it.isUpperCase() }
-    val hasSpecialChar = password.any { !it.isLetterOrDigit() }
-    val passwordsMatch = password.isNotEmpty() && password == confirmPassword
-    
+    LaunchedEffect(state.registerSuccess) {
+        if (state.registerSuccess) onRegisterSuccess()
+    }
+
+    val hasMinLength = state.password.length >= 8
+    val hasNumber = state.password.any { it.isDigit() }
+    val hasUppercase = state.password.any { it.isUpperCase() }
+    val hasSpecialChar = state.password.any { !it.isLetterOrDigit() }
+    val passwordsMatch = state.password.isNotEmpty() && state.password == state.confirmPassword
     val allRulesMet = hasMinLength && hasNumber && hasUppercase && hasSpecialChar && passwordsMatch
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -69,21 +71,21 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(32.dp)
-                .imePadding() // Asegura que el contenido suba con el teclado
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                "Crear Cuenta", 
-                fontSize = 42.sp, 
-                color = Color.White, 
+                "Crear Cuenta",
+                fontSize = 42.sp,
+                color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-1).sp
             )
             Text(
-                "Únete al equipo de MeseroWatch", 
-                color = Color.Gray, 
+                "Únete al equipo de MeseroWatch",
+                color = Color.Gray,
                 fontSize = 14.sp
             )
 
@@ -96,8 +98,8 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     OutlinedTextField(
-                        value = user,
-                        onValueChange = { user = it },
+                        value = state.user,
+                        onValueChange = viewModel::onUserChanged,
                         label = { Text("Nombre de Usuario") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF3B82F6)) },
@@ -111,12 +113,13 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
 
                     Spacer(Modifier.height(16.dp))
 
+                    var expandedRol by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
                         expanded = expandedRol,
                         onExpandedChange = { expandedRol = !expandedRol }
                     ) {
                         OutlinedTextField(
-                            value = rol.name,
+                            value = state.rol.name,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Rol") },
@@ -136,7 +139,7 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
                                 DropdownMenuItem(
                                     text = { Text(selectionOption.name) },
                                     onClick = {
-                                        rol = selectionOption
+                                        viewModel.onRolChanged(selectionOption)
                                         expandedRol = false
                                     }
                                 )
@@ -147,21 +150,21 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
                     Spacer(Modifier.height(16.dp))
 
                     OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
+                        value = state.password,
+                        onValueChange = viewModel::onPasswordChanged,
                         label = { Text("Contraseña") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF3B82F6)) },
                         trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            IconButton(onClick = viewModel::togglePasswordVisibility) {
                                 Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    imageVector = if (state.passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = null,
                                     tint = Color.Gray
                                 )
                             }
                         },
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -173,8 +176,8 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
                     Spacer(Modifier.height(16.dp))
 
                     OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        value = state.confirmPassword,
+                        onValueChange = viewModel::onConfirmPasswordChanged,
                         label = { Text("Confirmar Contraseña") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF3B82F6)) },
@@ -187,7 +190,7 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
                         )
                     )
 
-                    AnimatedVisibility(visible = password.isNotEmpty()) {
+                    AnimatedVisibility(visible = state.password.isNotEmpty()) {
                         Column(modifier = Modifier.padding(top = 16.dp)) {
                             ValidationRow("Mínimo 8 caracteres", hasMinLength)
                             ValidationRow("Al menos un número", hasNumber)
@@ -197,47 +200,22 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onBackToLogin: () -> Unit) {
                         }
                     }
 
-                    if (error.isNotEmpty()) {
-                        Text(error, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                    if (state.error != null) {
+                        Text(state.error!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
                     }
 
                     Spacer(Modifier.height(24.dp))
 
                     Button(
-                        onClick = {
-                            if (user.isEmpty()) {
-                                error = "Ingresa un nombre de usuario"
-                            } else if (!allRulesMet) {
-                                error = "Revisa los requisitos de seguridad"
-                            } else {
-                                isLoading = true
-                                val db = FirebaseDatabase.getInstance().getReference("usuarios")
-                                val key = db.push().key ?: ""
-                                val nuevoUsuario = Usuario(
-                                    id = key,
-                                    nombre = user.trim(),
-                                    rol = rol,
-                                    activo = true,
-                                    estadoUsuario = EstadoUsuario.ACTIVO
-                                )
-                                db.child(key).setValue(nuevoUsuario).addOnCompleteListener { task ->
-                                    isLoading = false
-                                    if (task.isSuccessful) {
-                                        onRegisterSuccess()
-                                    } else {
-                                        error = "Error al registrar"
-                                    }
-                                }
-                            }
-                        },
+                        onClick = viewModel::register,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (allRulesMet) Color(0xFF3B82F6) else Color.Gray.copy(alpha = 0.3f)
                         ),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = !isLoading
+                        enabled = !state.isLoading
                     ) {
-                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         else Text("Registrarse", fontWeight = FontWeight.Bold)
                     }
                 }

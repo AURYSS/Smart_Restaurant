@@ -3,6 +3,8 @@ package mx.utng.carh.meserowatch.mobile
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import mx.utng.carh.meserowatch.mobile.domain.model.RolUsuario
+import mx.utng.carh.meserowatch.mobile.domain.model.Usuario
 
 object SessionManager {
     var currentUser by mutableStateOf<Usuario?>(null)

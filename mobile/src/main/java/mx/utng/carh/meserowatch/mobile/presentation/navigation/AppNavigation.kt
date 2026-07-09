@@ -1,4 +1,4 @@
-package mx.utng.carh.meserowatch.mobile
+package mx.utng.carh.meserowatch.mobile.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -14,6 +14,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import mx.utng.carh.meserowatch.mobile.SessionManager
+import mx.utng.carh.meserowatch.mobile.presentation.ui.admin.AdminDashboardScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.alertas.AlertasScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.historial.HistorialPedidosScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.login.LoginScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.menu.MenuAdminScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.mesas.EstadoMesasScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.nuevopedido.NuevoPedidoScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.personal.PersonalAdminScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.register.RegisterScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.turnos.TurnosPersonalScreen
+import mx.utng.carh.meserowatch.mobile.presentation.ui.zonas.ZonasAdminScreen
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Login : Screen("login", "Login", Icons.Default.Lock)
@@ -37,22 +49,20 @@ fun AppNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Definir qué pestañas ve cada quién (Basado en imagen Admin)
     val adminItems = listOf(Screen.InicioAdmin, Screen.Mesas, Screen.Turnos, Screen.Historial, Screen.Personal)
     val userItems = listOf(Screen.Nuevo, Screen.Alertas, Screen.Menu)
-    
     val currentItems = if (SessionManager.isAdmin) adminItems else userItems
 
     Scaffold(
         topBar = {
             if (currentRoute != Screen.Login.route) {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
-                            if(SessionManager.isAdmin) "Panel de administrador" else "MeseroWatch", 
+                            if (SessionManager.isAdmin) "Panel de administrador" else "MeseroWatch",
                             color = Color.White,
                             fontWeight = FontWeight.Bold
-                        ) 
+                        )
                     },
                     actions = {
                         IconButton(onClick = {
@@ -102,7 +112,7 @@ fun AppNavigation() {
             startDestination = Screen.Login.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Login.route) { 
+            composable(Screen.Login.route) {
                 LoginScreen(
                     onLoginSuccess = {
                         val startRoute = if (SessionManager.isAdmin) Screen.InicioAdmin.route else Screen.Nuevo.route
@@ -113,7 +123,7 @@ fun AppNavigation() {
                     onNavigateToRegister = {
                         navController.navigate(Screen.Register.route)
                     }
-                ) 
+                )
             }
             composable(Screen.Register.route) {
                 RegisterScreen(
@@ -127,26 +137,25 @@ fun AppNavigation() {
                     }
                 )
             }
-            composable(Screen.InicioAdmin.route) { 
+            composable(Screen.InicioAdmin.route) {
                 AdminDashboardScreen(
                     onNavigateTo = { route -> navController.navigate(route) }
-                ) 
+                )
             }
             composable(Screen.Turnos.route) { TurnosPersonalScreen() }
             composable(Screen.Historial.route) { HistorialPedidosScreen() }
-            composable(Screen.Nuevo.route) { 
+            composable(Screen.Nuevo.route) {
                 NuevoPedidoScreen(onNavigateToAlertas = {
                     navController.navigate(Screen.Alertas.route) {
                         popUpTo(Screen.Nuevo.route) { inclusive = false }
                     }
-                }) 
+                })
             }
             composable(Screen.Alertas.route) { AlertasScreen() }
-            composable(Screen.MisPedidos.route) { Text("Mis Pedidos Screen", color = Color.White) }
             composable(Screen.Mesas.route) { EstadoMesasScreen() }
             composable(Screen.Menu.route) { MenuAdminScreen() }
-            composable(Screen.Personal.route) { 
-                PersonalAdminScreen(onNavigateToZonas = { navController.navigate(Screen.Zonas.route) }) 
+            composable(Screen.Personal.route) {
+                PersonalAdminScreen(onNavigateToZonas = { navController.navigate(Screen.Zonas.route) })
             }
             composable(Screen.Zonas.route) { ZonasAdminScreen() }
         }
