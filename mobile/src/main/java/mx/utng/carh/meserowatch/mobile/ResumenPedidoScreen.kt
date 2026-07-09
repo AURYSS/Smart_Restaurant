@@ -22,8 +22,8 @@ import com.google.firebase.database.ServerValue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResumenPedidoScreen(
-    mesaId: Int, 
-    platillosSeleccionados: List<PlatilloSeleccionado>, 
+    mesaId: Int,
+    platillosSeleccionados: List<PlatilloSeleccionado>,
     onBack: () -> Unit,
     onNavigateToAlertas: () -> Unit
 ) {
@@ -85,7 +85,7 @@ fun ResumenPedidoScreen(
         }
 
         val total = items.sumOf { it.precio * it.cantidad }
-        
+
         Spacer(Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -99,30 +99,37 @@ fun ResumenPedidoScreen(
         Button(
             onClick = {
                 val nuevoPedidoKey = database.push().key ?: "p"
-                
-                // Construir descripción detallada con notas
-                val descBuilder = StringBuilder()
+
+                // La TV espera un nodo "items" con UN elemento por cada orden
+                // individual (no agrupado por platillo), cada uno con su propia
+                // "descripcion" y "nota". Ej: 2x Tacos con notas distintas -> 2 items.
+                val listaItemsFirebase = mutableListOf<Map<String, String>>()
                 items.forEach { item ->
-                    val notas = notasPorInstancia[item.id] ?: emptyList<String>()
-                    descBuilder.append("${item.cantidad} orden ${item.nombre.lowercase()}")
-                    if (notas.any { it.isNotEmpty() }) {
-                        descBuilder.append(" (")
-                        descBuilder.append(notas.filter { it.isNotEmpty() }.joinToString(", "))
-                        descBuilder.append(")")
+                    val notas = notasPorInstancia[item.id] ?: emptyList()
+                    repeat(item.cantidad) { i ->
+                        listaItemsFirebase.add(
+                            mapOf(
+                                "descripcion" to item.nombre,
+                                "nota" to (notas.getOrElse(i) { "" })
+                            )
+                        )
                     }
-                    descBuilder.append(" ")
                 }
 
+                // Descripción resumen: se usa solo como respaldo si "items" llegara vacío
+                val descResumen = items.joinToString(", ") { "${it.cantidad}x ${it.nombre}" }
+
                 val total = items.sumOf { it.precio * it.cantidad }
-                
+
                 val nuevoPedido = hashMapOf(
                     "id" to nuevoPedidoKey,
                     "mesa" to mesaId.toLong(),
-                    "descripcion" to descBuilder.toString().trim(),
-                    "nota" to "Notas por instancia incluidas en descripción",
+                    "descripcion" to descResumen,
+                    "nota" to "",
                     "estado" to "EN_PREPARACION",
                     "total" to total,
-                    "timestamp" to ServerValue.TIMESTAMP
+                    "timestamp" to ServerValue.TIMESTAMP,
+                    "items" to listaItemsFirebase
                 )
                 database.child(nuevoPedidoKey).setValue(nuevoPedido).addOnCompleteListener {
                     onNavigateToAlertas()
@@ -159,7 +166,7 @@ fun CardResumenItem(
                 Text(item.nombre, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text("$${(item.precio * item.cantidad).toInt()}", color = Color.White)
             }
-            
+
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
                 IconButton(onClick = { onCantidadChange(item.cantidad - 1) }, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Remove, contentDescription = null, tint = Color.Gray)
@@ -174,13 +181,13 @@ fun CardResumenItem(
 
             repeat(item.cantidad) { i ->
                 var notaTexto by remember(item.id, i) { mutableStateOf(notas.getOrElse(i) { "" }) }
-                
+
                 Text("Orden ${i + 1}", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                 OutlinedTextField(
                     value = notaTexto,
-                    onValueChange = { 
+                    onValueChange = {
                         notaTexto = it
-                        onNotaChange(i, it) 
+                        onNotaChange(i, it)
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     placeholder = { Text("Agregar nota...", color = Color.DarkGray, fontSize = 12.sp) },

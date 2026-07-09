@@ -37,6 +37,8 @@ android {
 dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.material3)
     implementation(libs.ui)
     implementation(libs.ui.graphics)
     implementation(libs.ui.tooling.preview)
@@ -45,8 +47,15 @@ dependencies {
     implementation("androidx.tv:tv-material:1.0.0-rc02")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("io.coil-kt:coil-compose:2.6.0")
-    
+
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
     implementation("com.google.firebase:firebase-database")
+
+    // ViewModel + Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Corrutinas
+    implementation(libs.coroutines.android)
 }

@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="mobile">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-26T17:42:34.236887800Z">
+        <DropdownSelection timestamp="2026-07-09T18:54:29.192593100Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Aurora\.android\avd\Pixel_6.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\arman\.android\avd\PhoneArmando.avd" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -26,10 +26,10 @@
       </SelectionState>
       <SelectionState runConfigName="tv">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-26T18:10:33.607791800Z">
+        <DropdownSelection timestamp="2026-07-09T19:01:05.434002700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Aurora\.android\avd\Television_4K.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\arman\.android\avd\Television_1080p.avd" />
             </handle>
           </Target>
         </DropdownSelection>
