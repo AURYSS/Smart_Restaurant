@@ -49,9 +49,28 @@ Desarrollar un ecosistema digital integral que optimice la gestión operativa de
     *   Ejecutar el módulo `:tv` en un emulador de Android TV.
 
 ## 📦 Estructura del Proyecto
-*   `/mobile`: Aplicación para teléfonos Android (Admin/Mesero).
-*   `/app`: Aplicación para Wear OS (Reloj inteligente).
-*   `/tv`: Aplicación para Android TV (Pantalla de cocina).
+
+El ecosistema está dividido en tres módulos principales, utilizando una arquitectura de capas (Clean Architecture) para asegurar la separación de responsabilidades:
+
+```text
+MeseroWatch/
+├── mobile/                      # Aplicación para teléfonos (Admin/Mesero)
+│   └── src/main/java/.../mobile/
+│       ├── data/                # Repositorios y fuentes de datos (Firebase)
+│       ├── domain/              # Modelos de negocio e interfaces
+│       └── presentation/        # Capa de interfaz de usuario y lógica
+│           ├── di/              # Inyección de dependencias (AppModule)
+│           ├── ui/              # Pantallas Compose (Login, Mesas, Zonas, etc.)
+│           ├── viewmodel/       # Gestión de estados (ViewModels)
+│           └── navigation/      # Rutas y flujo de navegación
+├── app/                         # Aplicación para Wear OS (Reloj inteligente)
+│   └── src/main/java/.../
+│       └── presentation/        # UI de Wear OS y manejo de sensores
+└── tv/                          # Aplicación para Android TV (Pantalla de cocina)
+    └── src/main/java/.../tv/
+        ├── data/                # Sincronización de pedidos de cocina
+        └── presentation/        # Monitor de producción visual
+```
 
 ## 📸 Capturas de Pantalla
 
