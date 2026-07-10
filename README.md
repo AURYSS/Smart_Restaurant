@@ -57,40 +57,58 @@ El ecosistema está dividido en tres módulos principales, utilizando una arquit
 
 ```text
 MeseroWatch/
+├── docs/                        # Documentación técnica del sistema
+│   ├── MobileFlow.md            # Diagramas y flujos de la App Móvil
+│   ├── WearFlow.md              # Lógica de gestos y sensores (Watch)
+│   ├── TvFlow.md                # Proceso de monitorización en Cocina
+│   └── images/                  # Activos visuales de documentación
 ├── mobile/                      # Módulo Smartphone (Admin/Mesero)
 │   └── src/main/java/.../mobile/
 │       ├── data/                # Persistencia y red
 │       │   ├── repository/      # Implementación de repositorios
-│       │   └── source/          # Fuentes de datos (Firebase)
+│       │   └── source/          # Fuentes de datos (Firebase Realtime DB)
 │       ├── domain/              # Lógica de negocio pura
-│       │   ├── model/           # Entidades (Pedido, Mesa, Usuario)
+│       │   ├── model/           # Entidades (Pedido, Mesa, Usuario, Zona)
 │       │   └── repository/      # Interfaces de abstracción
 │       └── presentation/        # UI y Controladores
 │           ├── di/              # Inyección de dependencias (AppModule)
 │           ├── ui/              # Pantallas Compose por característica
-│           │   ├── login/       # Acceso y seguridad
-│           │   ├── mesas/       # Gestión de ocupación
-│           │   ├── zonas/       # Clasificación y tarjetas expandibles
-│           │   └── nuevopedido/ # Creación de comandas
-│           ├── viewmodel/       # ViewModels de cada flujo
-│           └── navigation/      # Grafo de navegación (NavHost)
+│           │   ├── admin/       # Dashboard y panel de control
+│           │   ├── zonas/       # Gestión de áreas (Zonas A, B, C)
+│           │   ├── personal/    # Administración de empleados
+│           │   ├── mesas/       # Control de ocupación en tiempo real
+│           │   ├── login/       # Seguridad y autenticación
+│           │   └── nuevopedido/ # Flujo de creación de comandas
+│           ├── viewmodel/       # ViewModels para gestión de estado
+│           └── navigation/      # Grafo de navegación centralizado
 ├── app/                         # Módulo Wear OS (Reloj inteligente)
 │   └── src/main/java/.../
-│       └── presentation/        # Interfaz y sensores
-│           ├── theme/           # Estilos Wear Material
-│           ├── GestureDetector  # Procesamiento del Giroscopio
-│           ├── PedidoViewModel  # Estado de alertas en el reloj
-│           └── Pantallas.kt     # UI optimizada para dispositivos redondos
+│       ├── data/                # Persistencia de alertas de pedidos
+│       │   ├── repository/      # Repositorios de Wear OS
+│       │   └── source/          # Conexión con Firebase Realtime DB
+│       ├── domain/              # Casos de uso y modelos del reloj
+│       │   ├── model/           # Entidades (Pedido, EstadoPedido)
+│       │   └── repository/      # Interfaces de datos
+│       └── presentation/        # Interfaz y procesamiento de sensores
+│           ├── ui/              # Componentes Wear Compose
+│           │   ├── PantallaInicio.kt       # Pantalla de bienvenida
+│           │   ├── PantallaLista.kt        # Listado de pedidos activos
+│           │   └── PantallaNotificacion.kt # Alerta visual de pedido listo
+│           ├── viewmodel/       # Gestión de estado del reloj
+│           ├── theme/           # Tipografías y colores de Wear OS
+│           └── utils/           # WristGestureDetector (Giroscopio)
 └── tv/                          # Módulo Android TV (Monitor de cocina)
     └── src/main/java/.../tv/
-        ├── data/                # Repositorios de sincronización
-        ├── domain/              # Casos de uso de producción
-        │   ├── model/           # Modelos de pedidos de cocina
-        │   └── usecase/         # Lógica de actualización de estados
-        └── presentation/        # UI de monitorización
-            └── kitchen/         # Pantallas de gestión de cocina
-                ├── components/  # Componentes visuales para TV
-                └── KitchenScreen.kt
+        ├── data/                # Persistencia y sincronización
+        │   └── repository/      # Implementación de repositorio de cocina
+        ├── domain/              # Lógica de producción
+        │   ├── model/           # Modelo de Pedido de cocina
+        │   └── usecase/         # Casos de uso (Observar, Actualizar, Eliminar)
+        └── presentation/        # Interfaz de usuario para TV
+            └── kitchen/         # Flujo principal de monitorización
+                ├── components/  # Tarjetas y elementos visuales
+                ├── KitchenScreen.kt      # Pantalla principal (Composables)
+                └── KitchenViewScreen.kt  # Lógica de estado y KitchenViewModel
 ```
 ---
 © 2026 MeseroWatch - Sistema de Gestión Inteligente.
