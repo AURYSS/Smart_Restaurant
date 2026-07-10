@@ -2,6 +2,8 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
+      <SelectionState runConfigName="tv">
+        <option name="selectionMode" value="DROPDOWN" />
       <SelectionState runConfigName="mobile">
         <option name="selectionMode" value="DROPDOWN" />
         <DropdownSelection timestamp="2026-07-10T17:17:30.922816500Z">
