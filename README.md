@@ -11,21 +11,30 @@ Desarrollar un ecosistema digital integral que optimice la gestión operativa de
 
 ## 📝 Descripción de las Funcionalidades
 
-### 📱 Módulo Móvil (Admin & Mesero)
+### 📱 [Módulo Móvil (Admin & Mesero)](docs/MobileFlow.md)
 *   **Seguridad Avanzada:** Pantalla de registro y login con validación de requisitos de contraseña en tiempo real (mayúsculas, números y caracteres especiales).
 *   **UX del Teclado:** Adaptación automática de la interfaz (`imePadding`) para evitar que el teclado oculte los campos de entrada.
 *   **Control de Comandas:** Creación de pedidos con cálculo automático de totales y sincronización instantánea con la cocina.
 *   **Dashboard Administrativo:** Panel con indicadores dinámicos de ventas y contador inteligente de ocupación de mesas (ej. 0/15).
 *   **Gestión de Zonas (Diseño Moderno):** Clasificación de zonas en categorías A, B y C con tarjetas expandibles para visualizar el personal y edición mediante pulsación larga (Long-press).
 
-### ⌚ Módulo Wear OS (Reloj Inteligente)
+#### [Código del módulo del móvil](docs/code/CodeMobile.md)
+
+
+### [⌚ Módulo Wear OS (Reloj Inteligente)](docs/WearFlow.md)
 *   **Notificaciones de Sistema:** Alertas visuales y vibratorias inmediatas cuando un pedido está listo en cocina.
 *   **Control Manos Libres (Sensores):** Integración con el giroscopio para marcar pedidos como "Entregado" mediante un giro de muñeca hacia arriba o posponerlos con un giro hacia abajo.
 *   **Vibración Háptica:** Patrones de vibración diferenciados para alertas de cocina y confirmación de gestos.
 
-### 📺 Módulo TV (Panel de Cocina)
+#### [Código del módulo del reloj](docs/code/CodeWear.md)
+
+
+### [📺 Módulo TV (Panel de Cocina)](docs/TvFlow.md)
 *   **Monitor de Producción:** Visualización de pedidos entrantes con imágenes de platillos y notas especiales.
 *   **Gestión de Estados:** Sincronización global que libera automáticamente la mesa en el móvil al completar o cancelar un pedido.
+
+#### [Código del módulo de tv](docs/code/CodeTv.md)
+
 
 ## 🛠️ Tecnologías Utilizadas
 *   **Lenguaje:** Kotlin 2.2.10
