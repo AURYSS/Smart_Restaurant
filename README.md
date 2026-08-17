@@ -119,5 +119,14 @@ MeseroWatch/
                 ├── KitchenScreen.kt      # Pantalla principal (Composables)
                 └── KitchenViewScreen.kt  # Lógica de estado y KitchenViewModel
 ```
+
+## Carta de validación
+
+<img width="1005" height="1342" alt="image" src="https://github.com/user-attachments/assets/4db7002f-317f-4067-b3c2-4251ce10c978" />
+
+<img width="999" height="1308" alt="image" src="https://github.com/user-attachments/assets/00ee159a-1516-41b2-ab3c-b84de666ab7a" />
+
+<img width="1000" height="1335" alt="image" src="https://github.com/user-attachments/assets/ed310379-7e3c-4552-90c5-cce35709f120" />
+
 ---
 © 2026 MeseroWatch - Sistema de Gestión Inteligente.
