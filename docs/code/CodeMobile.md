@@ -1531,6 +1531,16 @@ fun EditarPlatilloDialog(platillo: Platillo, onDismiss: () -> Unit, onGuardar: (
 Pantalla de administración de personal (usuarios/meseros). Muestra el listado de empleados y permite gestionarlos según su estado y rol.
 
 ```kotlin
+/**
+ * Pantalla de administración de personal (usuarios/meseros).
+ *
+ * Muestra el listado de empleados registrados, permite filtrarlos por estado
+ * (activo, inactivo, en descanso), agregar nuevos usuarios, editar los
+ * existentes y navegar hacia la pantalla de zonas.
+ *
+ * @param onNavigateToZonas Callback que se ejecuta al pulsar el botón "Zonas" para navegar a esa pantalla.
+ * @param viewModel ViewModel que expone el estado de usuarios y las operaciones de agregar, editar y actualizar.
+ */
 @Composable
 fun PersonalAdminScreen(
     onNavigateToZonas: () -> Unit,
@@ -1614,6 +1624,15 @@ fun PersonalAdminScreen(
     }
 }
 
+/**
+ * Fila que representa a un usuario dentro del listado de personal.
+ *
+ * Muestra su foto (emoji), nombre, rol, zona asignada y estado actual
+ * (activo, inactivo o en descanso) mediante un color distintivo.
+ *
+ * @param usuario Usuario a mostrar.
+ * @param onClick Callback que se ejecuta al pulsar sobre la fila, típicamente para editar al usuario.
+ */
 @Composable
 fun UsuarioItem(usuario: Usuario, onClick: () -> Unit) {
     Row(
@@ -1646,6 +1665,18 @@ fun UsuarioItem(usuario: Usuario, onClick: () -> Unit) {
 }
 
 // Diálogos adaptados
+
+/**
+ * Diálogo para registrar un nuevo usuario (empleado).
+ *
+ * Permite capturar el nombre completo, seleccionar el rol mediante un menú
+ * desplegable y elegir el estado inicial (activo, inactivo, en descanso)
+ * mediante chips. El botón "Guardar usuario" solo confirma la creación si el
+ * nombre no está vacío.
+ *
+ * @param onDismiss Callback que se ejecuta al cerrar el diálogo sin guardar.
+ * @param onGuardar Callback que se ejecuta con el nuevo [Usuario] al confirmar el guardado.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevoUsuarioDialog(onDismiss: () -> Unit, onGuardar: (Usuario) -> Unit) {
@@ -1689,6 +1720,18 @@ fun NuevoUsuarioDialog(onDismiss: () -> Unit, onGuardar: (Usuario) -> Unit) {
     }
 }
 
+/**
+ * Diálogo para editar un usuario existente.
+ *
+ * Precarga los campos con los valores actuales del [usuario] recibido y
+ * permite modificar su nombre, rol, zona y estado. A diferencia del diálogo
+ * de creación, "Actualizar usuario" guarda los cambios sin validar que el
+ * nombre no esté vacío.
+ *
+ * @param usuario Usuario original que se va a editar.
+ * @param onDismiss Callback que se ejecuta al cerrar el diálogo sin guardar cambios.
+ * @param onGuardar Callback que se ejecuta con el [Usuario] actualizado al confirmar los cambios.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarUsuarioDialog(usuario: Usuario, onDismiss: () -> Unit, onGuardar: (Usuario) -> Unit) {
@@ -1733,6 +1776,16 @@ fun EditarUsuarioDialog(usuario: Usuario, onDismiss: () -> Unit, onGuardar: (Usu
 Pantalla de gestión de zonas del restaurante (categorías A, B y C). Permite visualizar el personal asignado a cada zona mediante tarjetas expandibles y editar una zona mediante pulsación larga (long-press).
 
 ```kotlin
+/**
+ * Pantalla de gestión de zonas del restaurante.
+ *
+ * Agrupa las zonas por clasificación ("Zona A", "Zona B", "Zona C" y "Otras
+ * Zonas") y muestra, para cada una, una tarjeta expandible con el personal
+ * asignado. Permite crear nuevas zonas y editar una existente mediante
+ * pulsación larga (long-press) sobre su tarjeta.
+ *
+ * @param viewModel ViewModel que expone el estado de zonas y usuarios, y las operaciones de agregar, editar, actualizar y eliminar zonas.
+ */
 @Composable
 fun ZonasAdminScreen(viewModel: ZonasAdminViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
@@ -1811,6 +1864,18 @@ fun ZonasAdminScreen(viewModel: ZonasAdminViewModel = viewModel()) {
     }
 }
 
+/**
+ * Tarjeta expandible que representa una zona y el personal asignado a ella.
+ *
+ * Muestra el nombre de la zona, su estado (disponible/no disponible) y la
+ * cantidad de personas asignadas. Si hay personal asignado, al pulsar la
+ * tarjeta se expande o colapsa la lista de empleados con su estado de turno;
+ * una pulsación larga dispara la edición de la zona.
+ *
+ * @param zona Zona a mostrar.
+ * @param personal Lista de usuarios asignados a esta zona.
+ * @param onLongClick Callback que se ejecuta al mantener presionada la tarjeta, típicamente para editar la zona.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ZonaItem(zona: Zona, personal: List<mx.utng.carh.meserowatch.mobile.domain.model.Usuario>, onLongClick: () -> Unit) {
@@ -1868,6 +1933,17 @@ fun ZonaItem(zona: Zona, personal: List<mx.utng.carh.meserowatch.mobile.domain.m
 }
 
 // Diálogos para agregar/editar zonas
+
+/**
+ * Diálogo para registrar una nueva zona.
+ *
+ * Permite capturar el nombre de la zona y elegir su estado inicial
+ * (disponible/no disponible) mediante chips. El botón "Guardar zona" solo
+ * confirma la creación si el nombre no está vacío.
+ *
+ * @param onDismiss Callback que se ejecuta al cerrar el diálogo sin guardar.
+ * @param onGuardar Callback que se ejecuta con la nueva [Zona] al confirmar el guardado.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevaZonaDialog(onDismiss: () -> Unit, onGuardar: (Zona) -> Unit) {
@@ -1897,6 +1973,18 @@ fun NuevaZonaDialog(onDismiss: () -> Unit, onGuardar: (Zona) -> Unit) {
     }
 }
 
+/**
+ * Diálogo para editar una zona existente.
+ *
+ * Precarga los campos con los valores actuales de la [zona] recibida y
+ * permite modificar su nombre y estado, además de ofrecer la opción de
+ * eliminarla.
+ *
+ * @param zona Zona original que se va a editar.
+ * @param onDismiss Callback que se ejecuta al cerrar el diálogo sin guardar cambios.
+ * @param onGuardar Callback que se ejecuta con la [Zona] actualizada al confirmar los cambios.
+ * @param onEliminar Callback que se ejecuta al pulsar el botón "Eliminar".
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarZonaDialog(zona: Zona, onDismiss: () -> Unit, onGuardar: (Zona) -> Unit, onEliminar: () -> Unit) {
@@ -1932,6 +2020,15 @@ fun EditarZonaDialog(zona: Zona, onDismiss: () -> Unit, onGuardar: (Zona) -> Uni
 Pantalla de control de turnos del personal. Registra la hora de inicio y fin de turno de cada usuario.
 
 ```kotlin
+/**
+ * Pantalla de control de turnos del personal.
+ *
+ * Muestra el listado completo de usuarios junto con su información de turno,
+ * permite registrar un nuevo usuario y editar uno existente a través de los
+ * diálogos correspondientes.
+ *
+ * @param viewModel ViewModel que expone el estado de usuarios y las operaciones de agregar, editar y actualizar.
+ */
 @Composable
 fun TurnosPersonalScreen(viewModel: UsuariosViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
@@ -1987,6 +2084,15 @@ fun TurnosPersonalScreen(viewModel: UsuariosViewModel = viewModel()) {
     }
 }
 
+/**
+ * Fila que representa a un usuario dentro del listado de turnos.
+ *
+ * Muestra su foto (emoji), nombre, rol, zona asignada y el estado actual del
+ * turno (activo, inactivo o en descanso).
+ *
+ * @param usuario Usuario a mostrar.
+ * @param onEdit Callback que se ejecuta al pulsar sobre la fila, para editar al usuario.
+ */
 @Composable
 fun UsuarioTurnoItem(usuario: Usuario, onEdit: () -> Unit) {
     Surface(
@@ -2016,10 +2122,6 @@ fun UsuarioTurnoItem(usuario: Usuario, onEdit: () -> Unit) {
     }
 }
 ```
-
-# Código documentado con KDoc
-
-## Presentation / UI
 
 ### `presentation/ui/alertas/AlertasScreen.kt`
 
