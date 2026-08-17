@@ -12,7 +12,18 @@ Este documento describe el propósito de cada archivo del módulo `mobile`, orga
 Actividad principal y punto de entrada de la aplicación. Se encarga de instanciar el contenido de Compose, aplicar el tema general (`MaterialTheme`) y arrancar el grafo de navegación (`AppNavigation`) donde inicia el flujo con la pantalla de login.
 
 ```kotlin
+/**
+ * Actividad principal y punto de entrada de la aplicación móvil de MeseroWatch.
+ *
+ * Configura la superficie de MaterialTheme y carga el componente raíz de navegación [AppNavigation].
+ */
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Inicializa la actividad e infla la interfaz de usuario basada en Jetpack Compose.
+     *
+     * @param savedInstanceState Estado previamente guardado de la actividad, si existe.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -30,20 +41,41 @@ class MainActivity : ComponentActivity() {
 Objeto singleton que mantiene el estado de la sesión activa en memoria durante la ejecución de la app: el usuario autenticado (`currentUser`) y si tiene rol de administrador (`isAdmin`). Expone funciones para iniciar sesión como admin, iniciar sesión como usuario normal y cerrar sesión.
 
 ```kotlin
+/**
+ * Objeto Singleton que administra el estado de la sesión activa del usuario en memoria.
+ */
 object SessionManager {
+    /**
+     * Usuario autenticado actualmente en la aplicación, o `null` si no hay sesión iniciada.
+     */
     var currentUser by mutableStateOf<Usuario?>(null)
+
+    /**
+     * Indica si el usuario en sesión posee privilegios de administrador.
+     */
     var isAdmin by mutableStateOf(false)
 
+    /**
+     * Inicia una sesión con un usuario predeterminado con rol de Administrador.
+     */
     fun loginAsAdmin() {
         currentUser = Usuario(id = "admin", nombre = "Administrador", rol = RolUsuario.ADMIN)
         isAdmin = true
     }
 
+    /**
+     * Registra la sesión activa a partir de un objeto [Usuario] autenticado.
+     *
+     * @param usuario Instancia del usuario que inició sesión.
+     */
     fun loginAsUser(usuario: Usuario) {
         currentUser = usuario
         isAdmin = usuario.rol == RolUsuario.ADMIN
     }
 
+    /**
+     * Limpia la sesión actual y restablece las banderas de autenticación.
+     */
     fun logout() {
         currentUser = null
         isAdmin = false
@@ -59,20 +91,41 @@ object SessionManager {
 Define el grafo de navegación de toda la app usando `NavHost` y `NavController`. Declara las rutas (`Screen`) disponibles, controla el flujo entre pantallas (login, registro, dashboard, mesas, pedidos, menú, personal, zonas, turnos, alertas, historial) y muestra la barra de navegación inferior/lateral según el rol del usuario en sesión.
 
 ```kotlin
+/**
+ * Objeto Singleton que administra el estado de la sesión activa del usuario en memoria.
+ */
 object SessionManager {
+    /**
+     * Usuario autenticado actualmente en la aplicación, o `null` si no hay sesión iniciada.
+     */
     var currentUser by mutableStateOf<Usuario?>(null)
+
+    /**
+     * Indica si el usuario en sesión posee privilegios de administrador.
+     */
     var isAdmin by mutableStateOf(false)
 
+    /**
+     * Inicia una sesión con un usuario predeterminado con rol de Administrador.
+     */
     fun loginAsAdmin() {
         currentUser = Usuario(id = "admin", nombre = "Administrador", rol = RolUsuario.ADMIN)
         isAdmin = true
     }
 
+    /**
+     * Registra la sesión activa a partir de un objeto [Usuario] autenticado.
+     *
+     * @param usuario Instancia del usuario que inició sesión.
+     */
     fun loginAsUser(usuario: Usuario) {
         currentUser = usuario
         isAdmin = usuario.rol == RolUsuario.ADMIN
     }
 
+    /**
+     * Limpia la sesión actual y restablece las banderas de autenticación.
+     */
     fun logout() {
         currentUser = null
         isAdmin = false
@@ -88,6 +141,11 @@ object SessionManager {
 Módulo de inyección de dependencias manual. Crea e inicializa (de forma perezosa con `by lazy`) las fuentes de datos (`DataSource`) y las expone envueltas en sus respectivas implementaciones de repositorio (`Repository`), para que los ViewModels accedan a ellas sin acoplarse directamente a Firebase.
 
 ```kotlin
+/**
+ * Contenedor de inyección de dependencias manual a nivel de aplicación.
+ *
+ * Provee instancias perezosas (lazy) de las fuentes de datos y repositorios del sistema.
+ */
 object AppModule {
     // Data sources
     private val authDataSource by lazy { AuthDataSource() }
@@ -98,11 +156,22 @@ object AppModule {
     private val usuarioDataSource by lazy { UsuarioDataSource() }
 
     // Repositories
+    /** Repositorio para operaciones de autenticación de usuarios. */
     val authRepository: AuthRepository by lazy { AuthRepositoryImpl(authDataSource) }
+
+    /** Repositorio para la gestión del catálogo de platillos y menú. */
     val menuRepository: MenuRepository by lazy { MenuRepositoryImpl(menuDataSource) }
+
+    /** Repositorio para la creación y seguimiento de comandas/pedidos. */
     val pedidoRepository: PedidoRepository by lazy { PedidoRepositoryImpl(pedidoDataSource) }
+
+    /** Repositorio para el control y asignación de mesas. */
     val mesaRepository: MesaRepository by lazy { MesaRepositoryImpl(mesaDataSource) }
+
+    /** Repositorio para la configuración de zonas del restaurante. */
     val zonaRepository: ZonaRepository by lazy { ZonaRepositoryImpl(zonaDataSource) }
+
+    /** Repositorio para la gestión de usuarios, roles y personal. */
     val usuarioRepository: UsuarioRepository by lazy { UsuarioRepositoryImpl(usuarioDataSource) }
 }
 ```
@@ -115,6 +184,13 @@ object AppModule {
 Pantalla de inicio de sesión. Contiene los campos de usuario y contraseña, el botón de acceso, el enlace a registro y el manejo visual de errores de autenticación.
 
 ```kotlin
+/**
+ * Pantalla de inicio de sesión con validación interactiva de credenciales y reglas de contraseña.
+ *
+ * @param onLoginSuccess Callback ejecutado cuando la autenticación resulta exitosa.
+ * @param onNavigateToRegister Callback para redirigir al formulario de registro.
+ * @param viewModel ViewModel encargado de la lógica y estado de inicio de sesión.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
@@ -136,7 +212,7 @@ fun LoginScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
-            model = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop",
+            model = "[https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop](https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop)",
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -281,6 +357,12 @@ fun LoginScreen(
     }
 }
 
+/**
+ * Fila visual de validación que muestra el estado de cumplimiento de una regla de contraseña.
+ *
+ * @param text Descripción del requisito a evaluar.
+ * @param isMet Indica si la condición se cumple satisfactoriamente.
+ */
 @Composable
 fun ValidationRow(text: String, isMet: Boolean) {
     val color by animateColorAsState(
@@ -308,6 +390,13 @@ fun ValidationRow(text: String, isMet: Boolean) {
 Pantalla de registro de nuevos usuarios (meseros). Incluye la validación en tiempo real de los requisitos de la contraseña (mayúsculas, números, caracteres especiales) y la confirmación de contraseña.
 
 ```kotlin
+/**
+ * Pantalla de registro para nuevos empleados, con validación de requisitos de seguridad en tiempo real.
+ *
+ * @param onRegisterSuccess Callback invocado tras completar el registro exitosamente.
+ * @param onBackToLogin Callback para regresar a la pantalla de login.
+ * @param viewModel ViewModel que maneja la lógica y envío de datos de registro.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
@@ -330,7 +419,7 @@ fun RegisterScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
-            model = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop",
+            model = "[https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop](https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop)",
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -446,75 +535,23 @@ fun RegisterScreen(
                                 )
                             }
                         },
-                        visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF3B82F6)
-                        )
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = state.confirmPassword,
-                        onValueChange = viewModel::onConfirmPasswordChanged,
-                        label = { Text("Confirmar Contraseña") },
-                        modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF3B82F6)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF3B82F6)
-                        )
-                    )
-
-                    AnimatedVisibility(visible = state.password.isNotEmpty()) {
-                        Column(modifier = Modifier.padding(top = 16.dp)) {
-                            ValidationRow("Mínimo 8 caracteres", hasMinLength)
-                            ValidationRow("Al menos un número", hasNumber)
-                            ValidationRow("Una letra mayúscula", hasUppercase)
-                            ValidationRow("Un carácter especial", hasSpecialChar)
-                            ValidationRow("Las contraseñas coinciden", passwordsMatch)
-                        }
-                    }
-
-                    if (state.error != null) {
-                        Text(state.error!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-                    }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Button(
-                        onClick = viewModel::register,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (allRulesMet) Color(0xFF3B82F6) else Color.Gray.copy(alpha = 0.3f)
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = !state.isLoading
-                    ) {
-                        if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        else Text("Registrarse", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            TextButton(onClick = onBackToLogin, modifier = Modifier.padding(top = 16.dp)) {
-                Text("¿Ya tienes cuenta? Inicia Sesión", color = Color(0xFF3B82F6))
-            }
-        }
-    }
-}
+                        visualTransformation = if (state.passwordVisible) Visual
 ```
 
 ### `presentation/ui/admin/AdminDashboardScreen.kt`
 Panel principal del administrador. Muestra los indicadores clave del restaurante: ventas del día, total de pedidos, pedidos en curso, personal activo y ocupación de mesas.
 
 ```kotlin
+/**
+ * Pantalla principal del panel administrativo.
+ *
+ * Presenta un resumen de los indicadores más importantes del restaurante,
+ * como ventas, pedidos, personal activo y ocupación de mesas. Además,
+ * proporciona accesos rápidos a los distintos módulos del sistema.
+ *
+ * @param onNavigateTo Función utilizada para navegar a otra pantalla.
+ * @param viewModel ViewModel encargado de proporcionar el estado del dashboard.
+ */
 @Composable
 fun AdminDashboardScreen(
     onNavigateTo: (String) -> Unit,
@@ -740,6 +777,17 @@ fun NuevaMesaDialog(onDismiss: () -> Unit, onGuardar: (Mesa) -> Unit) {
 Flujo de creación de comandas. Permite seleccionar la mesa, elegir los platillos del menú, agregar notas especiales y calcular el total del pedido antes de enviarlo a cocina.
 
 ```kotlin
+/**
+ * Pantalla principal para la creación de un nuevo pedido.
+ *
+ * Coordina el flujo de selección de mesa, elección de platillos
+ * y resumen del pedido antes de enviarlo a cocina.
+ *
+ * @param onNavigateToAlertas Acción ejecutada cuando el pedido
+ * se envía correctamente.
+ * @param viewModel ViewModel encargado de administrar el estado
+ * del flujo de creación del pedido.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevoPedidoScreen(
@@ -1219,6 +1267,13 @@ fun CardResumenItem(
 Pantalla administrativa del menú del restaurante. Permite ver, filtrar por categoría, buscar, agregar, editar y eliminar platillos.
 
 ```kotlin
+/**
+ * Chip de filtro seleccionable, usado para filtrar platillos por categoría.
+ *
+ * @param text Texto que se muestra dentro del chip.
+ * @param isSelected Indica si el chip está actualmente seleccionado, lo que cambia su color de fondo y texto.
+ * @param onClick Callback que se ejecuta al pulsar el chip.
+ */
 @Composable
 fun FilterChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
@@ -1234,6 +1289,17 @@ fun FilterChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 // ------------------------------------------------------------
 
+/**
+ * Pantalla administrativa del menú del restaurante.
+ *
+ * Muestra la lista de platillos registrados, permite filtrarlos por categoría,
+ * buscarlos, agregar nuevos platillos y editar o eliminar los existentes.
+ * Los diálogos de creación y edición se muestran condicionalmente según el
+ * estado local de la pantalla.
+ *
+ * @param viewModel ViewModel que expone el estado del menú y las operaciones
+ * de agregar, actualizar y eliminar platillos.
+ */
 @Composable
 fun MenuAdminScreen(viewModel: MenuAdminViewModel = viewModel()) {
     var mostrarNuevoPlatillo by remember { mutableStateOf(false) }
@@ -1309,6 +1375,16 @@ fun MenuAdminScreen(viewModel: MenuAdminViewModel = viewModel()) {
     }
 }
 
+/**
+ * Tarjeta que representa un platillo dentro de la lista administrativa del menú.
+ *
+ * Muestra el emoji, nombre, categoría y precio del platillo, junto con acciones
+ * para editarlo o eliminarlo.
+ *
+ * @param platillo Platillo a mostrar.
+ * @param onEdit Callback que se ejecuta al pulsar el botón "Editar".
+ * @param onDelete Callback que se ejecuta al pulsar el botón de eliminar.
+ */
 @Composable
 fun AdminPlatilloItem(platillo: Platillo, onEdit: () -> Unit, onDelete: () -> Unit) {
     Surface(
@@ -1346,6 +1422,18 @@ fun AdminPlatilloItem(platillo: Platillo, onEdit: () -> Unit, onDelete: () -> Un
 }
 
 // Diálogos (adaptados para usar callbacks)
+
+/**
+ * Diálogo para registrar un nuevo platillo en el menú.
+ *
+ * Permite capturar el nombre, la categoría (mediante un menú desplegable) y el
+ * precio del platillo. El emoji se asigna automáticamente según la categoría
+ * seleccionada. El botón "Guardar" solo confirma la creación si el nombre y el
+ * precio no están vacíos.
+ *
+ * @param onDismiss Callback que se ejecuta al cerrar el diálogo sin guardar.
+ * @param onGuardar Callback que se ejecuta con el nuevo [Platillo] al confirmar el guardado.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevoPlatilloDialog(onDismiss: () -> Unit, onGuardar: (Platillo) -> Unit) {
@@ -1386,6 +1474,18 @@ fun NuevoPlatilloDialog(onDismiss: () -> Unit, onGuardar: (Platillo) -> Unit) {
     }
 }
 
+/**
+ * Diálogo para editar un platillo existente del menú.
+ *
+ * Precarga los campos con los valores actuales del [platillo] recibido y
+ * permite modificar su nombre, categoría y precio. El emoji se recalcula
+ * automáticamente según la categoría seleccionada. El botón "Actualizar" solo
+ * confirma los cambios si el nombre y el precio no están vacíos.
+ *
+ * @param platillo Platillo original que se va a editar.
+ * @param onDismiss Callback que se ejecuta al cerrar el diálogo sin guardar cambios.
+ * @param onGuardar Callback que se ejecuta con el [Platillo] actualizado al confirmar los cambios.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarPlatilloDialog(platillo: Platillo, onDismiss: () -> Unit, onGuardar: (Platillo) -> Unit) {
