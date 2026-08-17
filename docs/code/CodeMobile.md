@@ -1917,10 +1917,23 @@ fun UsuarioTurnoItem(usuario: Usuario, onEdit: () -> Unit) {
 }
 ```
 
+# Código documentado con KDoc
+
+## Presentation / UI
+
 ### `presentation/ui/alertas/AlertasScreen.kt`
-Pantalla de alertas/notificaciones de pedidos. Muestra los pedidos filtrados por estado y el detalle de un pedido seleccionado.
 
 ```kotlin
+/**
+ * Pantalla que muestra los pedidos activos del restaurante a modo de alertas/notificaciones.
+ *
+ * Presenta un listado de pedidos filtrables por estado (Todos, Listos, En cocina, Cancelados)
+ * y permite abrir un diálogo con el detalle de un pedido al seleccionarlo.
+ *
+ * @param viewModel ViewModel que expone el estado de la pantalla ([AlertasState]) y las
+ * acciones disponibles (filtrar, ver detalle, cerrar detalle). Por defecto se obtiene mediante
+ * el helper `viewModel()` de Compose.
+ */
 @Composable
 fun AlertasScreen(viewModel: AlertasViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
@@ -1988,6 +2001,13 @@ fun AlertasScreen(viewModel: AlertasViewModel = viewModel()) {
     }
 }
 
+/**
+ * Diálogo modal que muestra el detalle completo de un [Pedido]: mesa, resumen/descripción
+ * y estado actual (con color asociado según el estado).
+ *
+ * @param pedido Pedido cuyo detalle se va a mostrar.
+ * @param onDismiss Callback invocado al cerrar el diálogo (botón "Cerrar" o al tocar fuera de él).
+ */
 @Composable
 fun DetallePedidoDialog(pedido: Pedido, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
@@ -2032,6 +2052,16 @@ fun DetallePedidoDialog(pedido: Pedido, onDismiss: () -> Unit) {
     }
 }
 
+/**
+ * Ítem de lista que representa un [Pedido] dentro de la pantalla de alertas.
+ *
+ * Muestra un indicador de color según el estado del pedido, el número de mesa,
+ * una vista previa de la descripción y una etiqueta con el estado (Listo, Cocina, Cancelado, etc.).
+ * Al tocarlo, invoca [onClick] para abrir el detalle del pedido.
+ *
+ * @param pedido Pedido a representar en la fila.
+ * @param onClick Callback invocado cuando el usuario toca el ítem.
+ */
 @Composable
 fun AlertaItem(pedido: Pedido, onClick: () -> Unit) {
     val (statusText, statusColor) = when (pedido.estado) {
@@ -2079,9 +2109,17 @@ fun AlertaItem(pedido: Pedido, onClick: () -> Unit) {
 ```
 
 ### `presentation/ui/historial/HistorialPedidosScreen.kt`
-Pantalla de historial de pedidos. Permite buscar y consultar pedidos pasados.
 
 ```kotlin
+/**
+ * Pantalla de historial de pedidos.
+ *
+ * Muestra la lista completa de pedidos ya procesados (entregados, cancelados, etc.) junto con
+ * un campo de búsqueda que permite filtrar por número de mesa o por platillo.
+ *
+ * @param viewModel ViewModel que expone el estado ([HistorialPedidosState]) con la lista filtrada
+ * de pedidos y el texto de búsqueda actual.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistorialPedidosScreen(viewModel: HistorialPedidosViewModel = viewModel()) {
@@ -2122,6 +2160,14 @@ fun HistorialPedidosScreen(viewModel: HistorialPedidosViewModel = viewModel()) {
     }
 }
 
+/**
+ * Ítem de lista utilizado en la pantalla de historial para representar un [Pedido] pasado.
+ *
+ * Muestra la mesa, el estado (con color asociado: entregado, cancelado o intermedio),
+ * la descripción del pedido, el mesero asignado (o "Sin asignar" si no tiene) y el total cobrado.
+ *
+ * @param pedido Pedido a mostrar en la fila del historial.
+ */
 @Composable
 fun HistorialItem(pedido: Pedido) {
     Surface(
@@ -2155,9 +2201,20 @@ fun HistorialItem(pedido: Pedido) {
 ## Presentation / ViewModel
 
 ### `presentation/viewmodel/LoginViewModel.kt`
-Maneja el estado y la lógica de la pantalla de login: usuario, contraseña, visibilidad de contraseña, estado de carga, errores y confirmación de inicio de sesión exitoso.
 
 ```kotlin
+/**
+ * Estado de la pantalla de inicio de sesión.
+ *
+ * @property user Nombre de usuario ingresado.
+ * @property password Contraseña ingresada.
+ * @property isLoading Indica si hay una operación de login en curso (spinner de carga).
+ * @property error Mensaje de error a mostrar, o `null` si no hay error.
+ * @property isLoggedIn Indica si el usuario logró iniciar sesión (se usa junto a [loginSuccess]).
+ * @property passwordVisible Indica si el campo de contraseña se muestra en texto plano.
+ * @property loginSuccess Bandera que señala que el login finalizó con éxito, usada para disparar
+ * la navegación a la siguiente pantalla.
+ */
 data class LoginUiState(
     val user: String = "",
     val password: String = "",
@@ -2168,22 +2225,58 @@ data class LoginUiState(
     val loginSuccess: Boolean = false
 )
 
+/**
+ * ViewModel encargado de la lógica de inicio de sesión.
+ *
+ * Administra el estado del formulario de login ([LoginUiState]), valida la contraseña
+ * según las reglas de seguridad del sistema y delega la autenticación real al
+ * [AuthRepository] (obtenido desde [AppModule]). También sincroniza la sesión activa
+ * con [SessionManager] al autenticar correctamente.
+ */
 class LoginViewModel : ViewModel() {
     private val authRepo = AppModule.authRepository
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
 
+    /**
+     * Actualiza el nombre de usuario en el estado y limpia cualquier error previo.
+     *
+     * @param value Nuevo valor del campo de usuario.
+     */
     fun onUserChanged(value: String) {
         _uiState.value = _uiState.value.copy(user = value, error = null)
     }
+
+    /**
+     * Actualiza la contraseña en el estado y limpia cualquier error previo.
+     *
+     * @param value Nuevo valor del campo de contraseña.
+     */
     fun onPasswordChanged(value: String) {
         _uiState.value = _uiState.value.copy(password = value, error = null)
     }
+
+    /**
+     * Alterna la visibilidad de la contraseña entre texto plano y oculto.
+     */
     fun togglePasswordVisibility() {
         _uiState.value = _uiState.value.copy(passwordVisible = !_uiState.value.passwordVisible)
     }
 
+    /**
+     * Ejecuta el proceso de inicio de sesión.
+     *
+     * Si las credenciales corresponden al usuario administrador fijo (`admin`/`admin123`),
+     * autentica directamente como administrador mediante [AuthRepository.loginAsAdmin] y
+     * actualiza [SessionManager].
+     *
+     * En caso contrario, valida que la contraseña cumpla los requisitos de seguridad
+     * (longitud mínima de 8 caracteres, al menos un número, una mayúscula y un carácter
+     * especial). Si la validación falla, se establece un mensaje de error y se detiene el flujo.
+     * Si es válida, intenta autenticar al usuario contra [AuthRepository.login] y, en caso de
+     * éxito, inicia sesión mediante [SessionManager.loginAsUser].
+     */
     fun login() {
         val state = _uiState.value
         if (state.user == "admin" && state.password == "admin123") {
@@ -2224,9 +2317,20 @@ class LoginViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/RegisterViewModel.kt`
-Maneja el estado y la lógica de la pantalla de registro: datos del nuevo usuario, rol asignado, validación de contraseñas y llamada al `AuthRepository` para registrar al usuario.
 
 ```kotlin
+/**
+ * Estado de la pantalla de registro de un nuevo usuario.
+ *
+ * @property user Nombre de usuario a registrar.
+ * @property password Contraseña ingresada.
+ * @property confirmPassword Confirmación de la contraseña, debe coincidir con [password].
+ * @property rol Rol asignado al nuevo usuario (por defecto [RolUsuario.MESERO]).
+ * @property isLoading Indica si el registro está en proceso.
+ * @property error Mensaje de error a mostrar, o `null` si no hay error.
+ * @property registerSuccess Bandera que indica que el registro finalizó con éxito.
+ * @property passwordVisible Indica si el campo de contraseña se muestra en texto plano.
+ */
 data class RegisterUiState(
     val user: String = "",
     val password: String = "",
@@ -2238,18 +2342,64 @@ data class RegisterUiState(
     val passwordVisible: Boolean = false
 )
 
+/**
+ * ViewModel encargado de la lógica de registro de nuevos usuarios.
+ *
+ * Administra el estado del formulario ([RegisterUiState]), valida los datos ingresados
+ * (usuario no vacío, contraseña segura y coincidente con su confirmación) y delega la
+ * creación del usuario al [AuthRepository].
+ */
 class RegisterViewModel : ViewModel() {
     private val authRepo = AppModule.authRepository
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState = _uiState.asStateFlow()
 
+    /**
+     * Actualiza el nombre de usuario en el estado y limpia el error actual.
+     *
+     * @param v Nuevo valor del campo de usuario.
+     */
     fun onUserChanged(v: String) { _uiState.value = _uiState.value.copy(user = v, error = null) }
+
+    /**
+     * Actualiza la contraseña en el estado y limpia el error actual.
+     *
+     * @param v Nuevo valor del campo de contraseña.
+     */
     fun onPasswordChanged(v: String) { _uiState.value = _uiState.value.copy(password = v, error = null) }
+
+    /**
+     * Actualiza la confirmación de contraseña en el estado y limpia el error actual.
+     *
+     * @param v Nuevo valor del campo de confirmación de contraseña.
+     */
     fun onConfirmPasswordChanged(v: String) { _uiState.value = _uiState.value.copy(confirmPassword = v, error = null) }
+
+    /**
+     * Actualiza el rol seleccionado para el nuevo usuario.
+     *
+     * @param rol Nuevo rol asignado ([RolUsuario]).
+     */
     fun onRolChanged(rol: RolUsuario) { _uiState.value = _uiState.value.copy(rol = rol) }
+
+    /**
+     * Alterna la visibilidad de la contraseña entre texto plano y oculto.
+     */
     fun togglePasswordVisibility() { _uiState.value = _uiState.value.copy(passwordVisible = !_uiState.value.passwordVisible) }
 
+    /**
+     * Ejecuta el proceso de registro de un nuevo usuario.
+     *
+     * Valida que el nombre de usuario no esté vacío y que la contraseña cumpla los
+     * requisitos de seguridad (mínimo 8 caracteres, al menos un número, una mayúscula
+     * y un carácter especial) y coincida con [RegisterUiState.confirmPassword]. Si alguna
+     * validación falla, establece un mensaje de error y detiene el flujo.
+     *
+     * Si todo es válido, construye un nuevo [Usuario] (activo y con estado
+     * [EstadoUsuario.ACTIVO]) y lo registra mediante [AuthRepository.register],
+     * actualizando el estado según el resultado.
+     */
     fun register() {
         val state = _uiState.value
         if (state.user.isEmpty()) { _uiState.value = state.copy(error = "Ingresa un nombre de usuario"); return }
@@ -2280,9 +2430,18 @@ class RegisterViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/AdminDashboardViewModel.kt`
-Calcula y expone en tiempo real los indicadores del dashboard (ventas del día, pedidos totales, pedidos en curso, personal activo, mesas ocupadas) combinando los flujos de pedidos y usuarios.
 
 ```kotlin
+/**
+ * Estado del dashboard administrativo con los indicadores clave del restaurante.
+ *
+ * @property ventasHoy Suma del total de todos los pedidos ya entregados.
+ * @property totalPedidos Cantidad total de pedidos registrados (en cualquier estado).
+ * @property pedidosEnCurso Cantidad de pedidos que aún no han sido entregados ni cancelados.
+ * @property personalActivo Cantidad de usuarios marcados como activos.
+ * @property mesasOcupadas Cantidad de mesas actualmente en estado ocupado.
+ * @property mesasTotales Cantidad total de mesas registradas en el sistema (por defecto 12).
+ */
 data class AdminDashboardState(
     val ventasHoy: Double = 0.0,
     val totalPedidos: Int = 0,
@@ -2292,6 +2451,14 @@ data class AdminDashboardState(
     val mesasTotales: Int = 12
 )
 
+/**
+ * ViewModel que calcula y expone en tiempo real los indicadores del dashboard administrativo.
+ *
+ * Combina los flujos de pedidos ([PedidoRepository]), usuarios ([UsuarioRepository]) y mesas
+ * ([MesaRepository]) para derivar métricas agregadas (ventas del día, pedidos en curso,
+ * personal activo y ocupación de mesas), actualizándolas automáticamente cada vez que
+ * cambia alguna de las fuentes.
+ */
 class AdminDashboardViewModel : ViewModel() {
     private val pedidoRepo = AppModule.pedidoRepository
     private val usuarioRepo = AppModule.usuarioRepository
@@ -2300,6 +2467,15 @@ class AdminDashboardViewModel : ViewModel() {
     private val _state = MutableStateFlow(AdminDashboardState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, se suscribe a los flujos combinados de pedidos, usuarios y mesas,
+     * recalculando el [AdminDashboardState] completo cada vez que cualquiera de ellos emite
+     * un nuevo valor:
+     * - `pedidosEnCurso`: pedidos que no están en estado ENTREGADO ni CANCELADO.
+     * - `ventasHoy`: suma de los totales de los pedidos entregados.
+     * - `personalActivo`: cantidad de usuarios con `activo = true`.
+     * - `mesasOcupadas`: cantidad de mesas con estado OCUPADA.
+     */
     init {
         viewModelScope.launch {
             combine(
@@ -2327,20 +2503,36 @@ class AdminDashboardViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/EstadoMesasViewModel.kt`
-Maneja el estado de la pantalla de mesas: la lista de mesas en tiempo real y el diálogo para crear una nueva mesa.
 
 ```kotlin
+/**
+ * Estado de la pantalla de gestión de mesas.
+ *
+ * @property mesas Lista de mesas obtenidas en tiempo real desde el repositorio.
+ * @property showNuevaMesaDialog Indica si el diálogo para crear una nueva mesa está visible.
+ */
 data class EstadoMesasState(
     val mesas: List<Mesa> = emptyList(),
     val showNuevaMesaDialog: Boolean = false
 )
 
+/**
+ * ViewModel que maneja el estado y las operaciones CRUD de la pantalla de mesas.
+ *
+ * Observa la lista de mesas en tiempo real mediante [MesaRepository] y expone acciones
+ * para mostrar/ocultar el diálogo de creación, así como para agregar, actualizar y
+ * eliminar mesas.
+ */
 class EstadoMesasViewModel : ViewModel() {
     private val repo = AppModule.mesaRepository
 
     private val _state = MutableStateFlow(EstadoMesasState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, se suscribe al flujo de mesas del repositorio y actualiza
+     * el estado cada vez que la lista cambia.
+     */
     init {
         viewModelScope.launch {
             repo.getTodasLasMesas().collect { mesas ->
@@ -2349,14 +2541,26 @@ class EstadoMesasViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Muestra el diálogo para crear una nueva mesa.
+     */
     fun showNuevaMesaDialog() {
         _state.value = _state.value.copy(showNuevaMesaDialog = true)
     }
 
+    /**
+     * Oculta el diálogo de creación de nueva mesa.
+     */
     fun hideNuevaMesaDialog() {
         _state.value = _state.value.copy(showNuevaMesaDialog = false)
     }
 
+    /**
+     * Agrega una nueva mesa a través del repositorio y cierra el diálogo de creación
+     * al finalizar la operación.
+     *
+     * @param mesa Mesa a registrar.
+     */
     fun addMesa(mesa: Mesa) {
         viewModelScope.launch {
             repo.addMesa(mesa)
@@ -2364,10 +2568,20 @@ class EstadoMesasViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza los datos de una mesa existente.
+     *
+     * @param mesa Mesa con los datos actualizados.
+     */
     fun updateMesa(mesa: Mesa) {
         viewModelScope.launch { repo.updateMesa(mesa) }
     }
 
+    /**
+     * Elimina una mesa del sistema.
+     *
+     * @param id Identificador de la mesa a eliminar.
+     */
     fun deleteMesa(id: Int) {
         viewModelScope.launch { repo.deleteMesa(id) }
     }
@@ -2375,9 +2589,23 @@ class EstadoMesasViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/NuevoPedidoViewModel.kt`
-Maneja el estado completo del flujo de creación de pedidos: mesas disponibles, búsqueda/selección de mesa, platillos del menú, búsqueda de platillos y armado del pedido con su cálculo de total.
 
 ```kotlin
+/**
+ * Estado del flujo de creación de un nuevo pedido.
+ *
+ * @property mesas Lista de mesas disponibles obtenidas en tiempo real.
+ * @property searchMesa Texto de búsqueda usado para filtrar mesas.
+ * @property filterMesa Filtro aplicado sobre las mesas (por ejemplo "Todas", libres, ocupadas).
+ * @property mesaSeleccionada Id de la mesa seleccionada para armar el pedido, o `null` si aún
+ * no se ha elegido ninguna.
+ * @property platillos Lista de platillos del menú disponibles para agregar al pedido.
+ * @property searchPlatillo Texto de búsqueda usado para filtrar platillos.
+ * @property filterCategoria Categoría seleccionada para filtrar los platillos (por defecto "Todos").
+ * @property seleccionados Mapa de id de platillo a cantidad seleccionada dentro del pedido en curso.
+ * @property mostrandoResumen Indica si la pantalla está mostrando el resumen del pedido antes de enviarlo.
+ * @property pedidoEnviado Bandera que indica que el pedido fue enviado exitosamente.
+ */
 data class NuevoPedidoState(
     val mesas: List<Mesa> = emptyList(),
     val searchMesa: String = "",
@@ -2391,6 +2619,11 @@ data class NuevoPedidoState(
     val pedidoEnviado: Boolean = false
 )
 
+/**
+ * ViewModel que orquesta todo el flujo de creación de un pedido: selección de mesa,
+ * selección de platillos del menú (con búsqueda y filtro por categoría), armado del
+ * resumen y envío final del pedido.
+ */
 class NuevoPedidoViewModel : ViewModel() {
     private val mesaRepo = AppModule.mesaRepository
     private val menuRepo = AppModule.menuRepository
@@ -2399,6 +2632,10 @@ class NuevoPedidoViewModel : ViewModel() {
     private val _state = MutableStateFlow(NuevoPedidoState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, se suscribe al flujo de mesas para mantener la lista actualizada
+     * en tiempo real.
+     */
     init {
         viewModelScope.launch {
             mesaRepo.getTodasLasMesas().collect { mesas ->
@@ -2407,9 +2644,26 @@ class NuevoPedidoViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza el texto de búsqueda usado para filtrar mesas.
+     *
+     * @param q Nuevo texto de búsqueda.
+     */
     fun onSearchMesaChanged(q: String) { _state.update { it.copy(searchMesa = q) } }
+
+    /**
+     * Actualiza el filtro aplicado sobre la lista de mesas.
+     *
+     * @param f Nuevo valor del filtro.
+     */
     fun onFilterMesaChanged(f: String) { _state.update { it.copy(filterMesa = f) } }
 
+    /**
+     * Selecciona la mesa para la cual se armará el pedido y carga el menú de platillos
+     * disponibles desde [MenuRepository].
+     *
+     * @param id Identificador de la mesa seleccionada.
+     */
     fun seleccionarMesa(id: Int) {
         _state.update { it.copy(mesaSeleccionada = id) }
         // Cargar platillos cuando se selecciona mesa
@@ -2420,11 +2674,32 @@ class NuevoPedidoViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Regresa al paso de selección de mesa, deseleccionando la mesa actual y
+     * ocultando el resumen del pedido si estaba visible.
+     */
     fun volverAMesas() { _state.update { it.copy(mesaSeleccionada = null, mostrandoResumen = false) } }
 
+    /**
+     * Actualiza el texto de búsqueda usado para filtrar platillos del menú.
+     *
+     * @param q Nuevo texto de búsqueda.
+     */
     fun onSearchPlatilloChanged(q: String) { _state.update { it.copy(searchPlatillo = q) } }
+
+    /**
+     * Actualiza la categoría seleccionada para filtrar los platillos del menú.
+     *
+     * @param cat Nueva categoría seleccionada.
+     */
     fun onCategoriaChanged(cat: String) { _state.update { it.copy(filterCategoria = cat) } }
 
+    /**
+     * Alterna la selección de un platillo dentro del pedido en curso: si ya estaba
+     * seleccionado lo quita, si no lo estaba lo agrega con cantidad inicial 1.
+     *
+     * @param platilloId Identificador del platillo a alternar.
+     */
     fun togglePlatillo(platilloId: String) {
         _state.update { current ->
             val map = current.seleccionados.toMutableMap()
@@ -2433,6 +2708,15 @@ class NuevoPedidoViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Establece la cantidad de un platillo seleccionado dentro del pedido.
+     *
+     * Si la cantidad indicada es menor o igual a 0, el platillo se elimina de la
+     * selección; en caso contrario se actualiza (o agrega) su cantidad.
+     *
+     * @param platilloId Identificador del platillo.
+     * @param cantidad Nueva cantidad deseada para ese platillo.
+     */
     fun setCantidad(platilloId: String, cantidad: Int) {
         if (cantidad <= 0) {
             _state.update { it.copy(seleccionados = it.seleccionados - platilloId) }
@@ -2441,9 +2725,33 @@ class NuevoPedidoViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Avanza a la pantalla de resumen del pedido, mostrando los platillos seleccionados
+     * antes de confirmarlo.
+     */
     fun irAResumen() { _state.update { it.copy(mostrandoResumen = true) } }
+
+    /**
+     * Regresa desde el resumen a la selección de platillos, permitiendo seguir editando
+     * el pedido.
+     */
     fun volverAPlatillos() { _state.update { it.copy(mostrandoResumen = false) } }
 
+    /**
+     * Construye y envía el pedido final al repositorio.
+     *
+     * Crea un nuevo [Pedido] en estado [EstadoPedido.EN_PREPARACION], asociado al usuario
+     * actualmente autenticado (obtenido de [SessionManager]), y lo persiste mediante
+     * [PedidoRepository.addPedido]. Al finalizar, marca el estado como enviado
+     * ([NuevoPedidoState.pedidoEnviado]).
+     *
+     * @param mesaId Identificador de la mesa asociada al pedido.
+     * @param platillosConNotas Lista de platillos seleccionados junto con sus notas y cantidades.
+     * @param itemsFirebase Representación de los ítems del pedido en el formato requerido
+     * por Firebase (lista de mapas clave-valor).
+     * @param total Monto total del pedido.
+     * @param descripcion Descripción/resumen textual del pedido.
+     */
     fun enviarPedido(
         mesaId: Int,
         platillosConNotas: List<PlatilloSeleccionado>,
@@ -2468,21 +2776,38 @@ class NuevoPedidoViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/MenuAdminViewModel.kt`
-Maneja el estado de la pantalla de menú: lista de platillos, categoría seleccionada y búsqueda, además de las operaciones de agregar, actualizar y eliminar platillos.
 
 ```kotlin
+/**
+ * Estado de la pantalla de administración del menú.
+ *
+ * @property platillos Lista de platillos obtenidos en tiempo real desde el repositorio.
+ * @property selectedCategory Categoría actualmente seleccionada para filtrar (por defecto "Todos").
+ * @property searchQuery Texto de búsqueda usado para filtrar platillos por nombre u otro criterio.
+ */
 data class MenuAdminState(
     val platillos: List<Platillo> = emptyList(),
     val selectedCategory: String = "Todos",
     val searchQuery: String = ""
 )
 
+/**
+ * ViewModel que administra el CRUD del menú de platillos.
+ *
+ * Observa la lista de platillos en tiempo real mediante [MenuRepository] y expone
+ * acciones para filtrar por categoría/búsqueda, así como para agregar, actualizar
+ * y eliminar platillos.
+ */
 class MenuAdminViewModel : ViewModel() {
     private val repo = AppModule.menuRepository
 
     private val _state = MutableStateFlow(MenuAdminState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, se suscribe al flujo del menú y actualiza el estado cada vez
+     * que la lista de platillos cambia.
+     */
     init {
         viewModelScope.launch {
             repo.getMenu().collect { lista ->
@@ -2491,15 +2816,43 @@ class MenuAdminViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza la categoría seleccionada para filtrar el menú.
+     *
+     * @param cat Nueva categoría seleccionada.
+     */
     fun onCategorySelected(cat: String) { _state.value = _state.value.copy(selectedCategory = cat) }
+
+    /**
+     * Actualiza el texto de búsqueda usado para filtrar platillos.
+     *
+     * @param q Nuevo texto de búsqueda.
+     */
     fun onSearchQueryChanged(q: String) { _state.value = _state.value.copy(searchQuery = q) }
 
+    /**
+     * Agrega un nuevo platillo al menú a través del repositorio.
+     *
+     * @param platillo Platillo a registrar.
+     */
     fun addPlatillo(platillo: Platillo) {
         viewModelScope.launch { repo.addPlatillo(platillo) }
     }
+
+    /**
+     * Actualiza los datos de un platillo existente en el menú.
+     *
+     * @param platillo Platillo con los datos actualizados.
+     */
     fun updatePlatillo(platillo: Platillo) {
         viewModelScope.launch { repo.updatePlatillo(platillo) }
     }
+
+    /**
+     * Elimina un platillo del menú.
+     *
+     * @param id Identificador del platillo a eliminar.
+     */
     fun deletePlatillo(id: String) {
         viewModelScope.launch { repo.deletePlatillo(id) }
     }
@@ -2507,9 +2860,18 @@ class MenuAdminViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/UsuariosViewModel.kt`
-Maneja el estado de la pantalla de personal: lista de usuarios, filtro, estado de carga, y los diálogos para crear o editar un usuario.
 
 ```kotlin
+/**
+ * Estado de la pantalla de administración de personal (usuarios).
+ *
+ * @property usuarios Lista de usuarios obtenidos en tiempo real desde el repositorio.
+ * @property filter Filtro actualmente aplicado sobre la lista de usuarios (por ejemplo por rol o estado).
+ * @property isLoading Indica si la carga inicial de usuarios está en curso.
+ * @property showNuevoDialog Indica si el diálogo para crear un nuevo usuario está visible.
+ * @property usuarioAEditar Usuario actualmente seleccionado para edición, o `null` si no hay
+ * ninguno en edición.
+ */
 data class UsuariosState(
     val usuarios: List<Usuario> = emptyList(),
     val filter: String = "Todos",
@@ -2518,16 +2880,30 @@ data class UsuariosState(
     val usuarioAEditar: Usuario? = null
 )
 
+/**
+ * ViewModel que administra el CRUD de usuarios (personal) del restaurante.
+ *
+ * Observa la lista de usuarios en tiempo real mediante [UsuarioRepository] y expone
+ * acciones para filtrar, mostrar/ocultar el diálogo de creación, editar (o cancelar
+ * la edición) y realizar las operaciones de agregar, actualizar y eliminar usuarios.
+ */
 class UsuariosViewModel : ViewModel() {
     private val repo = AppModule.usuarioRepository
 
     private val _state = MutableStateFlow(UsuariosState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, dispara la carga de usuarios mediante [loadUsuarios].
+     */
     init {
         loadUsuarios()
     }
 
+    /**
+     * Marca el estado como cargando y se suscribe al flujo de usuarios del repositorio,
+     * actualizando la lista y desactivando el indicador de carga en cada emisión.
+     */
     private fun loadUsuarios() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
@@ -2537,26 +2913,52 @@ class UsuariosViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza el filtro aplicado sobre la lista de usuarios.
+     *
+     * @param filter Nuevo valor del filtro.
+     */
     fun setFilter(filter: String) {
         _state.value = _state.value.copy(filter = filter)
     }
 
+    /**
+     * Muestra el diálogo para crear un nuevo usuario.
+     */
     fun showNuevoUsuarioDialog() {
         _state.value = _state.value.copy(showNuevoDialog = true)
     }
 
+    /**
+     * Oculta el diálogo de creación de nuevo usuario.
+     */
     fun hideNuevoUsuarioDialog() {
         _state.value = _state.value.copy(showNuevoDialog = false)
     }
 
+    /**
+     * Establece el usuario que se va a editar, mostrando el formulario de edición
+     * correspondiente en la UI.
+     *
+     * @param usuario Usuario seleccionado para edición.
+     */
     fun editUsuario(usuario: Usuario) {
         _state.value = _state.value.copy(usuarioAEditar = usuario)
     }
 
+    /**
+     * Cancela la edición en curso, limpiando el usuario seleccionado para editar.
+     */
     fun cancelEditUsuario() {
         _state.value = _state.value.copy(usuarioAEditar = null)
     }
 
+    /**
+     * Agrega un nuevo usuario a través del repositorio y cierra el diálogo de creación
+     * al finalizar.
+     *
+     * @param usuario Usuario a registrar.
+     */
     fun addUsuario(usuario: Usuario) {
         viewModelScope.launch {
             repo.addUsuario(usuario)
@@ -2564,6 +2966,11 @@ class UsuariosViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza los datos de un usuario existente y cancela el modo edición al finalizar.
+     *
+     * @param usuario Usuario con los datos actualizados.
+     */
     fun updateUsuario(usuario: Usuario) {
         viewModelScope.launch {
             repo.updateUsuario(usuario)
@@ -2571,6 +2978,11 @@ class UsuariosViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Elimina un usuario del sistema.
+     *
+     * @param id Identificador del usuario a eliminar.
+     */
     fun deleteUsuario(id: String) {
         viewModelScope.launch {
             repo.deleteUsuario(id)
@@ -2580,9 +2992,16 @@ class UsuariosViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/ZonasAdminViewModel.kt`
-Maneja el estado de la pantalla de zonas: lista de zonas, lista de usuarios asociados y los diálogos para crear o editar una zona.
 
 ```kotlin
+/**
+ * Estado de la pantalla de administración de zonas del restaurante.
+ *
+ * @property zonas Lista de zonas obtenidas en tiempo real desde el repositorio.
+ * @property usuarios Lista de usuarios disponibles, usada para asociar meseros a una zona.
+ * @property showNuevaZonaDialog Indica si el diálogo para crear una nueva zona está visible.
+ * @property zonaAEditar Zona actualmente seleccionada para edición, o `null` si no hay ninguna.
+ */
 data class ZonasState(
     val zonas: List<Zona> = emptyList(),
     val usuarios: List<Usuario> = emptyList(),
@@ -2590,6 +3009,14 @@ data class ZonasState(
     val zonaAEditar: Zona? = null
 )
 
+/**
+ * ViewModel que administra el CRUD de zonas del restaurante.
+ *
+ * Observa en paralelo los flujos de zonas ([ZonaRepository]) y usuarios ([UsuarioRepository])
+ * para mantener actualizado el estado, y expone acciones para mostrar/ocultar el diálogo
+ * de creación, editar (o cancelar edición) y realizar las operaciones de agregar,
+ * actualizar y eliminar zonas.
+ */
 class ZonasAdminViewModel : ViewModel() {
     private val zonaRepo = AppModule.zonaRepository
     private val usuarioRepo = AppModule.usuarioRepository
@@ -2597,6 +3024,10 @@ class ZonasAdminViewModel : ViewModel() {
     private val _state = MutableStateFlow(ZonasState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, se suscribe de forma independiente al flujo de zonas y al flujo
+     * de usuarios, actualizando cada parte del estado según corresponda.
+     */
     init {
         viewModelScope.launch {
             zonaRepo.getZonas().collect { zonas ->
@@ -2610,14 +3041,26 @@ class ZonasAdminViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Muestra el diálogo para crear una nueva zona.
+     */
     fun showNuevaZonaDialog() {
         _state.value = _state.value.copy(showNuevaZonaDialog = true)
     }
 
+    /**
+     * Oculta el diálogo de creación de nueva zona.
+     */
     fun hideNuevaZonaDialog() {
         _state.value = _state.value.copy(showNuevaZonaDialog = false)
     }
 
+    /**
+     * Agrega una nueva zona a través del repositorio y cierra el diálogo de creación
+     * al finalizar.
+     *
+     * @param zona Zona a registrar.
+     */
     fun addZona(zona: Zona) {
         viewModelScope.launch {
             zonaRepo.addZona(zona)
@@ -2625,14 +3068,27 @@ class ZonasAdminViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Establece la zona que se va a editar.
+     *
+     * @param zona Zona seleccionada para edición.
+     */
     fun editZona(zona: Zona) {
         _state.value = _state.value.copy(zonaAEditar = zona)
     }
 
+    /**
+     * Cancela la edición en curso, limpiando la zona seleccionada para editar.
+     */
     fun cancelEditZona() {
         _state.value = _state.value.copy(zonaAEditar = null)
     }
 
+    /**
+     * Actualiza los datos de una zona existente y cancela el modo edición al finalizar.
+     *
+     * @param zona Zona con los datos actualizados.
+     */
     fun updateZona(zona: Zona) {
         viewModelScope.launch {
             zonaRepo.updateZona(zona)
@@ -2640,6 +3096,11 @@ class ZonasAdminViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Elimina una zona del sistema y cancela el modo edición al finalizar.
+     *
+     * @param id Identificador de la zona a eliminar.
+     */
     fun deleteZona(id: String) {
         viewModelScope.launch {
             zonaRepo.deleteZona(id)
@@ -2650,21 +3111,43 @@ class ZonasAdminViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/HistorialPedidosViewModel.kt`
-Maneja el estado de la pantalla de historial: lista completa de pedidos, texto de búsqueda y la lista filtrada resultante.
 
 ```kotlin
+/**
+ * Estado de la pantalla de historial de pedidos.
+ *
+ * @property pedidos Lista completa de pedidos obtenidos en tiempo real desde el repositorio.
+ * @property searchQuery Texto de búsqueda ingresado por el usuario.
+ * @property filteredPedidos Lista de pedidos resultante tras aplicar [searchQuery], en orden
+ * inverso (más recientes primero).
+ */
 data class HistorialPedidosState(
     val pedidos: List<Pedido> = emptyList(),
     val searchQuery: String = "",
     val filteredPedidos: List<Pedido> = emptyList()
 )
 
+/**
+ * ViewModel que administra el estado de la pantalla de historial de pedidos.
+ *
+ * Combina el flujo de pedidos del repositorio con el texto de búsqueda actual del
+ * estado para producir, de forma reactiva, la lista filtrada que se muestra en pantalla.
+ */
 class HistorialPedidosViewModel : ViewModel() {
     private val repo = AppModule.pedidoRepository
 
     private val _state = MutableStateFlow(HistorialPedidosState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, combina el flujo de pedidos con el flujo derivado del texto de
+     * búsqueda ([HistorialPedidosState.searchQuery]).
+     *
+     * La lista de pedidos se invierte (más recientes primero) y, si hay texto de búsqueda,
+     * se filtra por número de mesa o por coincidencia (sin distinguir mayúsculas/minúsculas)
+     * en la descripción del pedido. El resultado se guarda en
+     * [HistorialPedidosState.filteredPedidos].
+     */
     init {
         viewModelScope.launch {
             combine(
@@ -2683,6 +3166,12 @@ class HistorialPedidosViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza el texto de búsqueda del historial, lo que recalcula automáticamente
+     * la lista filtrada gracias a la combinación de flujos definida en [init].
+     *
+     * @param query Nuevo texto de búsqueda.
+     */
     fun onSearchChanged(query: String) {
         _state.value = _state.value.copy(searchQuery = query)
     }
@@ -2690,21 +3179,39 @@ class HistorialPedidosViewModel : ViewModel() {
 ```
 
 ### `presentation/viewmodel/AlertasViewModel.kt`
-Maneja el estado de la pantalla de alertas: lista de pedidos, filtro por estado y el pedido seleccionado para ver su detalle.
 
 ```kotlin
+/**
+ * Estado de la pantalla de alertas de pedidos.
+ *
+ * @property pedidos Lista de pedidos obtenidos en tiempo real desde el repositorio.
+ * @property filtro Filtro por estado actualmente aplicado (por defecto "Todos").
+ * @property pedidoDetalle Pedido seleccionado para mostrar en el diálogo de detalle,
+ * o `null` si no hay ninguno seleccionado.
+ */
 data class AlertasState(
     val pedidos: List<Pedido> = emptyList(),
     val filtro: String = "Todos",
     val pedidoDetalle: Pedido? = null
 )
 
+/**
+ * ViewModel que administra el estado de la pantalla de alertas.
+ *
+ * Observa la lista de pedidos en tiempo real mediante [PedidoRepository] y expone
+ * acciones para filtrar por estado y para mostrar/cerrar el detalle de un pedido
+ * seleccionado.
+ */
 class AlertasViewModel : ViewModel() {
     private val repo = AppModule.pedidoRepository
 
     private val _state = MutableStateFlow(AlertasState())
     val state = _state.asStateFlow()
 
+    /**
+     * Al inicializarse, se suscribe al flujo de pedidos del repositorio y actualiza
+     * la lista en el estado cada vez que cambia.
+     */
     init {
         viewModelScope.launch {
             repo.getPedidos().collect { lista ->
@@ -2713,8 +3220,23 @@ class AlertasViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza el filtro por estado aplicado sobre la lista de pedidos.
+     *
+     * @param filtro Nuevo valor del filtro (por ejemplo "Todos", "Listos", "En cocina", "Cancelados").
+     */
     fun setFiltro(filtro: String) { _state.update { it.copy(filtro = filtro) } }
+
+    /**
+     * Selecciona un pedido para mostrar su detalle en el diálogo correspondiente.
+     *
+     * @param pedido Pedido cuyo detalle se desea visualizar.
+     */
     fun verDetalle(pedido: Pedido) { _state.update { it.copy(pedidoDetalle = pedido) } }
+
+    /**
+     * Cierra el diálogo de detalle, limpiando el pedido seleccionado.
+     */
     fun cerrarDetalle() { _state.update { it.copy(pedidoDetalle = null) } }
 }
 ```
@@ -2724,34 +3246,93 @@ class AlertasViewModel : ViewModel() {
 ## Domain / Model
 
 ### `domain/model/Enums.kt`
-Define las enumeraciones centrales del sistema: `EstadoPedido` (pendiente, en preparación, listo, entregado, cancelado), `EstadoMesa` (libre, ocupada, reservada, fuera de servicio), `EstadoZona` y `RolUsuario`.
 
 ```kotlin
+/**
+ * Representa los posibles estados en el ciclo de vida de un [Pedido], desde que se crea
+ * hasta que se entrega o se cancela.
+ */
 enum class EstadoPedido {
-    PENDIENTE, EN_PREPARACION, LISTO, ENTREGADO, CANCELADO
+    /** El pedido fue creado pero aún no se ha comenzado a preparar. */
+    PENDIENTE,
+    /** El pedido está siendo preparado en cocina. */
+    EN_PREPARACION,
+    /** El pedido está listo para ser entregado al cliente. */
+    LISTO,
+    /** El pedido ya fue entregado al cliente. */
+    ENTREGADO,
+    /** El pedido fue cancelado y no se completará. */
+    CANCELADO
 }
 
+/**
+ * Representa el estado de disponibilidad de una [Mesa] del restaurante.
+ */
 enum class EstadoMesa {
-    LIBRE, OCUPADA, RESERVADA, FUERA_DE_SERVICIO
+    /** La mesa está disponible para asignar clientes. */
+    LIBRE,
+    /** La mesa está actualmente en uso (tiene un pedido activo). */
+    OCUPADA,
+    /** La mesa está reservada para un uso futuro. */
+    RESERVADA,
+    /** La mesa no está disponible para su uso (por ejemplo, en mantenimiento). */
+    FUERA_DE_SERVICIO
 }
 
+/**
+ * Representa el estado de disponibilidad de una [Zona] del restaurante.
+ */
 enum class EstadoZona {
-    DISPONIBLE, NO_DISPONIBLE
+    /** La zona está disponible para operar con normalidad. */
+    DISPONIBLE,
+    /** La zona no está disponible temporalmente. */
+    NO_DISPONIBLE
 }
 
+/**
+ * Representa los roles posibles que puede tener un [Usuario] dentro del sistema,
+ * y que determinan sus permisos y las pantallas a las que puede acceder.
+ */
 enum class RolUsuario {
-    MESERO, CHEF, CAJERO, ADMIN
+    /** Mesero encargado de tomar y entregar pedidos. */
+    MESERO,
+    /** Chef encargado de la preparación de los pedidos en cocina. */
+    CHEF,
+    /** Cajero encargado de los cobros. */
+    CAJERO,
+    /** Administrador con acceso completo al sistema. */
+    ADMIN
 }
 
+/**
+ * Representa el estado laboral actual de un [Usuario].
+ */
 enum class EstadoUsuario {
-    ACTIVO, INACTIVO, EN_DESCANSO
+    /** El usuario está activo y disponible para trabajar. */
+    ACTIVO,
+    /** El usuario está inactivo (por ejemplo, dado de baja temporalmente). */
+    INACTIVO,
+    /** El usuario está en su periodo de descanso. */
+    EN_DESCANSO
 }
 ```
 
 ### `domain/model/Usuario.kt`
-Entidad que representa a un usuario del sistema (mesero o administrador): id, nombre, rol, estado, zona asignada y avatar.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa a un usuario del sistema (mesero, chef, cajero o
+ * administrador).
+ *
+ * @property id Identificador único del usuario (clave en Firebase).
+ * @property nombre Nombre del usuario, también utilizado como credencial de login.
+ * @property rol Rol asignado al usuario dentro del sistema ([RolUsuario]).
+ * @property activo Indica si el usuario se encuentra actualmente activo en el sistema.
+ * @property estadoUsuario Estado laboral actual del usuario ([EstadoUsuario]).
+ * @property zonaId Identificador de la zona asignada al usuario, si aplica.
+ * @property zonaAsignada Nombre descriptivo de la zona asignada al usuario.
+ * @property fotoEmoji Emoji utilizado como avatar/foto de perfil del usuario.
+ */
 data class Usuario(
     val id: String = "",
     val nombre: String = "",
@@ -2765,9 +3346,18 @@ data class Usuario(
 ```
 
 ### `domain/model/Mesa.kt`
-Entidad que representa una mesa del restaurante: número, estado, capacidad, mesero asignado y zona a la que pertenece.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa una mesa física del restaurante.
+ *
+ * @property id Identificador único de la mesa.
+ * @property numero Número visible de la mesa dentro del restaurante.
+ * @property estado Estado actual de disponibilidad de la mesa ([EstadoMesa]).
+ * @property capacidad Cantidad máxima de comensales que puede recibir la mesa.
+ * @property meseroAsignado Identificador o nombre del mesero asignado a la mesa, si aplica.
+ * @property zonaId Identificador de la zona del restaurante a la que pertenece la mesa.
+ */
 data class Mesa(
     val id: Int = 0,
     val numero: Int = 0,
@@ -2779,9 +3369,16 @@ data class Mesa(
 ```
 
 ### `domain/model/Zona.kt`
-Entidad que representa una zona del restaurante (categoría A, B o C) y su estado de disponibilidad.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa una zona del restaurante (por ejemplo, sección A, B o C),
+ * agrupando un conjunto de mesas y, opcionalmente, un mesero responsable.
+ *
+ * @property id Identificador único de la zona.
+ * @property nombreZona Nombre descriptivo de la zona.
+ * @property estadoZona Estado de disponibilidad de la zona ([EstadoZona]).
+ */
 data class Zona(
     val id: String = "",
     val nombreZona: String = "",
@@ -2790,9 +3387,19 @@ data class Zona(
 ```
 
 ### `domain/model/Platillo.kt`
-Entidad que representa un platillo del menú: nombre, precio, categoría, disponibilidad e ingredientes.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa un platillo disponible en el menú del restaurante.
+ *
+ * @property id Identificador único del platillo.
+ * @property nombre Nombre del platillo.
+ * @property precio Precio unitario del platillo.
+ * @property categoria Categoría a la que pertenece el platillo (por ejemplo, entradas, platos fuertes, bebidas).
+ * @property disponible Indica si el platillo está disponible actualmente para ordenarse.
+ * @property ingredientes Lista de ingredientes que componen el platillo.
+ * @property emoji Emoji utilizado como representación visual del platillo.
+ */
 data class Platillo(
     val id: String = "",
     val nombre: String = "",
@@ -2805,9 +3412,23 @@ data class Platillo(
 ```
 
 ### `domain/model/Pedido.kt`
-Entidad que representa una comanda: mesa, mesero, platillos seleccionados, nota, estado, total y timestamp.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa una comanda (pedido) realizada en una mesa.
+ *
+ * @property id Identificador único del pedido.
+ * @property mesa Número de la mesa asociada al pedido.
+ * @property mesaId Identificador interno de la mesa asociada al pedido.
+ * @property meseroId Identificador del mesero que atendió el pedido.
+ * @property descripcion Descripción o resumen textual del contenido del pedido.
+ * @property nota Nota adicional asociada al pedido completo (por ejemplo, indicaciones especiales).
+ * @property estado Estado actual del pedido dentro de su ciclo de vida ([EstadoPedido]).
+ * @property total Monto total a cobrar por el pedido.
+ * @property timestamp Marca de tiempo (en milisegundos) en que se registró el pedido.
+ * @property platillos Lista de platillos seleccionados que componen el pedido ([PlatilloSeleccionado]).
+ * @property usuarioId Identificador del usuario (mesero) que generó el pedido.
+ */
 data class Pedido(
     val id: String = "",
     val mesa: Int = 0,
@@ -2822,6 +3443,17 @@ data class Pedido(
     val usuarioId: String = ""
 )
 
+/**
+ * Representa un platillo específico dentro de un [Pedido], junto con la cantidad
+ * solicitada y una nota particular para su preparación.
+ *
+ * @property id Identificador del platillo original en el menú.
+ * @property nombre Nombre del platillo en el momento de realizar el pedido.
+ * @property precio Precio unitario del platillo en el momento de realizar el pedido.
+ * @property cantidad Cantidad solicitada de este platillo dentro del pedido.
+ * @property nota Nota o indicación especial para la preparación de este platillo
+ * (por ejemplo, "sin cebolla").
+ */
 data class PlatilloSeleccionado(
     val id: String = "",
     val nombre: String = "",
@@ -2832,9 +3464,18 @@ data class PlatilloSeleccionado(
 ```
 
 ### `domain/model/Notificacion.kt`
-Entidad que representa una notificación asociada a un pedido, usada para el flujo de alertas hacia el mesero.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa una notificación generada a partir de un [Pedido],
+ * utilizada para alertar a un usuario (por ejemplo, un mesero) sobre un cambio de estado.
+ *
+ * @property id Identificador único de la notificación.
+ * @property pedidoId Identificador del pedido al que hace referencia la notificación.
+ * @property usuarioId Identificador del usuario destinatario de la notificación.
+ * @property mensaje Texto descriptivo de la notificación.
+ * @property confirmada Indica si el usuario ya confirmó o revisó la notificación.
+ */
 data class Notificacion(
     val id: String = "",
     val pedidoId: String = "",
@@ -2845,9 +3486,17 @@ data class Notificacion(
 ```
 
 ### `domain/model/Turno.kt`
-Entidad que representa el turno de trabajo de un usuario: hora de inicio y hora de fin.
 
 ```kotlin
+/**
+ * Entidad de dominio que representa el turno de trabajo de un [Usuario].
+ *
+ * @property id Identificador único del turno.
+ * @property horaInicio Marca de tiempo (en milisegundos) en que inició el turno.
+ * @property horaFin Marca de tiempo (en milisegundos) en que finalizó el turno, o `null`
+ * si el turno sigue en curso.
+ * @property usuarioId Identificador del usuario al que pertenece el turno.
+ */
 data class Turno(
     val id: String = "",
     val horaInicio: Long = 0,
@@ -2861,72 +3510,256 @@ data class Turno(
 ## Domain / Repository (interfaces)
 
 ### `domain/repository/AuthRepository.kt`
-Contrato de autenticación: login como administrador, login de usuario por nombre y registro de nuevos usuarios.
 
 ```kotlin
+/**
+ * Contrato de la capa de dominio para las operaciones de autenticación del sistema.
+ *
+ * Define las operaciones de login (como administrador o como usuario regular) y de
+ * registro de nuevos usuarios, sin exponer detalles de la fuente de datos subyacente
+ * (por ejemplo, Firebase).
+ */
 interface AuthRepository {
+
+    /**
+     * Autentica al usuario administrador predeterminado del sistema.
+     *
+     * @return [Result] exitoso con el [Usuario] administrador, o fallido si no fue
+     * posible autenticar.
+     */
     suspend fun loginAsAdmin(): Result<Usuario>
+
+    /**
+     * Autentica a un usuario regular a partir de su nombre de usuario.
+     *
+     * @param nombreUsuario Nombre de usuario con el que se intenta iniciar sesión.
+     * @return [Result] exitoso con el [Usuario] encontrado, o fallido si no existe
+     * o no se pudo autenticar.
+     */
     suspend fun login(nombreUsuario: String): Result<Usuario>
+
+    /**
+     * Registra un nuevo usuario en el sistema.
+     *
+     * @param usuario Datos del usuario a registrar.
+     * @return [Result] exitoso si el registro se completó correctamente, o fallido
+     * en caso de error.
+     */
     suspend fun register(usuario: Usuario): Result<Unit>
 }
 ```
 
 ### `domain/repository/UsuarioRepository.kt`
-Contrato para la gestión de usuarios: observar la lista en tiempo real, agregar, actualizar y eliminar.
 
 ```kotlin
+/**
+ * Contrato de la capa de dominio para la gestión de usuarios del sistema.
+ *
+ * Define las operaciones de lectura en tiempo real y las operaciones CRUD sobre
+ * la entidad [Usuario], sin exponer detalles de la fuente de datos subyacente.
+ */
 interface UsuarioRepository {
+
+    /**
+     * Observa la lista completa de usuarios en tiempo real.
+     *
+     * @return [Flow] que emite la lista actualizada de [Usuario] cada vez que cambia
+     * en la fuente de datos.
+     */
     fun getUsuarios(): Flow<List<Usuario>>
+
+    /**
+     * Agrega un nuevo usuario al sistema.
+     *
+     * @param usuario Usuario a registrar.
+     */
     suspend fun addUsuario(usuario: Usuario)
+
+    /**
+     * Actualiza los datos de un usuario existente.
+     *
+     * @param usuario Usuario con los datos actualizados.
+     */
     suspend fun updateUsuario(usuario: Usuario)
+
+    /**
+     * Elimina un usuario del sistema.
+     *
+     * @param id Identificador del usuario a eliminar.
+     */
     suspend fun deleteUsuario(id: String)
 }
 ```
 
 ### `domain/repository/MesaRepository.kt`
-Contrato para la gestión de mesas: observar todas las mesas en tiempo real, agregar, actualizar y eliminar.
 
 ```kotlin
+/**
+ * Contrato de la capa de dominio para la gestión de mesas del restaurante.
+ *
+ * Define las operaciones de lectura en tiempo real y las operaciones CRUD sobre
+ * la entidad [Mesa].
+ */
 interface MesaRepository {
+
+    /**
+     * Observa el estado de todas las mesas del restaurante en tiempo real, incluyendo
+     * su disponibilidad (libre/ocupada).
+     *
+     * @return [Flow] que emite la lista actualizada de [Mesa] cada vez que cambia
+     * en la fuente de datos.
+     */
     fun getTodasLasMesas(): Flow<List<Mesa>>
+
+    /**
+     * Agrega una nueva mesa al sistema.
+     *
+     * @param mesa Mesa a registrar.
+     */
     suspend fun addMesa(mesa: Mesa)
+
+    /**
+     * Actualiza los datos de configuración de una mesa existente.
+     *
+     * @param mesa Mesa con los datos actualizados.
+     */
     suspend fun updateMesa(mesa: Mesa)
+
+    /**
+     * Elimina una mesa del sistema.
+     *
+     * @param id Identificador de la mesa a eliminar.
+     */
     suspend fun deleteMesa(id: Int)
 }
 ```
 
 ### `domain/repository/ZonaRepository.kt`
-Contrato para la gestión de zonas: observar la lista en tiempo real, agregar, actualizar y eliminar.
 
 ```kotlin
+/**
+ * Contrato de la capa de dominio para la gestión de zonas del restaurante.
+ *
+ * Define las operaciones de lectura en tiempo real y las operaciones CRUD sobre
+ * la entidad [Zona].
+ */
 interface ZonaRepository {
+
+    /**
+     * Observa la lista completa de zonas en tiempo real.
+     *
+     * @return [Flow] que emite la lista actualizada de [Zona] cada vez que cambia
+     * en la fuente de datos.
+     */
     fun getZonas(): Flow<List<Zona>>
+
+    /**
+     * Agrega una nueva zona al sistema.
+     *
+     * @param zona Zona a registrar.
+     */
     suspend fun addZona(zona: Zona)
+
+    /**
+     * Actualiza los datos de una zona existente.
+     *
+     * @param zona Zona con los datos actualizados.
+     */
     suspend fun updateZona(zona: Zona)
+
+    /**
+     * Elimina una zona del sistema.
+     *
+     * @param id Identificador de la zona a eliminar.
+     */
     suspend fun deleteZona(id: String)
 }
 ```
 
 ### `domain/repository/MenuRepository.kt`
-Contrato para la gestión del menú: observar los platillos en tiempo real, agregar, actualizar y eliminar.
 
 ```kotlin
+/**
+ * Contrato de la capa de dominio para la gestión del menú de platillos.
+ *
+ * Define las operaciones de lectura en tiempo real y las operaciones CRUD sobre
+ * la entidad [Platillo].
+ */
 interface MenuRepository {
+
+    /**
+     * Observa la lista completa de platillos del menú en tiempo real.
+     *
+     * @return [Flow] que emite la lista actualizada de [Platillo] cada vez que cambia
+     * en la fuente de datos.
+     */
     fun getMenu(): Flow<List<Platillo>>
+
+    /**
+     * Agrega un nuevo platillo al menú.
+     *
+     * @param platillo Platillo a registrar.
+     */
     suspend fun addPlatillo(platillo: Platillo)
+
+    /**
+     * Actualiza los datos de un platillo existente en el menú.
+     *
+     * @param platillo Platillo con los datos actualizados.
+     */
     suspend fun updatePlatillo(platillo: Platillo)
+
+    /**
+     * Elimina un platillo del menú.
+     *
+     * @param id Identificador del platillo a eliminar.
+     */
     suspend fun deletePlatillo(id: String)
 }
 ```
 
 ### `domain/repository/PedidoRepository.kt`
-Contrato para la gestión de pedidos: observar los pedidos en tiempo real, agregar un pedido con sus platillos, actualizar su estado y eliminarlo.
 
 ```kotlin
+/**
+ * Contrato de la capa de dominio para la gestión de pedidos (comandas).
+ *
+ * Define las operaciones de lectura en tiempo real y las operaciones sobre
+ * la entidad [Pedido], incluyendo su registro con los ítems asociados, la
+ * actualización de su estado y su eliminación.
+ */
 interface PedidoRepository {
+
+    /**
+     * Observa la lista completa de pedidos en tiempo real.
+     *
+     * @return [Flow] que emite la lista actualizada de [Pedido] cada vez que cambia
+     * en la fuente de datos.
+     */
     fun getPedidos(): Flow<List<Pedido>>
+
+    /**
+     * Registra un nuevo pedido junto con el detalle de sus ítems.
+     *
+     * @param pedido Datos generales del pedido a registrar.
+     * @param items Lista de ítems del pedido representados como mapas clave-valor,
+     * en el formato requerido por la fuente de datos.
+     */
     suspend fun addPedido(pedido: Pedido, items: List<Map<String, String>>)
+
+    /**
+     * Actualiza el estado de un pedido existente.
+     *
+     * @param pedidoId Identificador del pedido a actualizar.
+     * @param nuevoEstado Nuevo estado a asignar ([EstadoPedido]).
+     */
     suspend fun updateEstado(pedidoId: String, nuevoEstado: EstadoPedido)
+
+    /**
+     * Elimina un pedido del sistema.
+     *
+     * @param pedidoId Identificador del pedido a eliminar.
+     */
     suspend fun deletePedido(pedidoId: String)
 }
 ```
@@ -2936,16 +3769,31 @@ interface PedidoRepository {
 ## Data / Source
 
 ### `data/source/AuthDataSource.kt`
-Acceso directo a Firebase Realtime Database para las operaciones de autenticación (nodo `usuarios`): validar credenciales y registrar nuevos usuarios.
 
 ```kotlin
+/**
+ * Fuente de datos encargada de las operaciones de autenticación contra Firebase
+ * Realtime Database, sobre el nodo `usuarios`.
+ */
 class AuthDataSource {
     private val database = FirebaseDatabase.getInstance().getReference("usuarios")
 
+    /**
+     * Devuelve un [Usuario] administrador fijo, sin necesidad de consultar la base de datos.
+     *
+     * @return Instancia de [Usuario] con rol [RolUsuario.ADMIN].
+     */
     suspend fun loginAsAdmin(): Usuario? {
         return Usuario(id = "admin", nombre = "Administrador", rol = RolUsuario.ADMIN)
     }
 
+    /**
+     * Busca un usuario por su nombre en el nodo `usuarios` de Firebase.
+     *
+     * @param nombreUsuario Nombre de usuario a buscar (se recorta espacios en blanco).
+     * @return El [Usuario] encontrado y mapeado desde Firebase, o `null` si no existe
+     * ningún usuario con ese nombre.
+     */
     suspend fun login(nombreUsuario: String): Usuario? {
         val snapshot = database.orderByChild("nombre")
             .equalTo(nombreUsuario.trim())
@@ -2958,11 +3806,24 @@ class AuthDataSource {
         return null
     }
 
+    /**
+     * Registra un nuevo usuario en Firebase, generando una clave única mediante `push()`.
+     *
+     * @param usuario Datos del usuario a registrar (el `id` final se asigna automáticamente).
+     */
     suspend fun register(usuario: Usuario) {
         val key = database.push().key ?: ""
         database.child(key).setValue(mapFromUsuario(usuario.copy(id = key))).await()
     }
 
+    /**
+     * Convierte un [DataSnapshot] de Firebase en una instancia de [Usuario], aplicando
+     * valores por defecto seguros ante campos ausentes o con formato inválido
+     * (por ejemplo, un rol o estado que no coincide con los valores del enum).
+     *
+     * @param snapshot Nodo de Firebase correspondiente a un usuario.
+     * @return [Usuario] mapeado a partir del snapshot.
+     */
     private fun mapToUsuario(snapshot: DataSnapshot): Usuario {
         return Usuario(
             id = snapshot.key ?: "",
@@ -2984,6 +3845,12 @@ class AuthDataSource {
         )
     }
 
+    /**
+     * Convierte un [Usuario] en un mapa clave-valor listo para persistirse en Firebase.
+     *
+     * @param usuario Usuario a serializar.
+     * @return Mapa con los campos del usuario en el formato esperado por Firebase.
+     */
     private fun mapFromUsuario(usuario: Usuario): Map<String, Any?> {
         return mapOf(
             "id" to usuario.id,
@@ -3000,12 +3867,25 @@ class AuthDataSource {
 ```
 
 ### `data/source/UsuarioDataSource.kt`
-Acceso directo a Firebase para el CRUD del nodo `usuarios`, exponiendo los cambios como `Flow` mediante `callbackFlow`.
 
 ```kotlin
+/**
+ * Fuente de datos encargada del CRUD de usuarios contra el nodo `usuarios` de
+ * Firebase Realtime Database, exponiendo los cambios en tiempo real como [Flow].
+ */
 class UsuarioDataSource {
     private val database = FirebaseDatabase.getInstance().getReference("usuarios")
 
+    /**
+     * Observa en tiempo real la lista completa de usuarios registrados en Firebase.
+     *
+     * Utiliza `callbackFlow` junto con un [ValueEventListener] para emitir una nueva
+     * lista cada vez que cambian los datos en el nodo `usuarios`. Los registros que
+     * fallan al mapearse (por ejemplo, por datos corruptos) se omiten silenciosamente.
+     * El listener se remueve automáticamente al cerrarse el flujo.
+     *
+     * @return [Flow] que emite la lista actualizada de [Usuario].
+     */
     fun getUsuarios(): Flow<List<Usuario>> = callbackFlow {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -3036,19 +3916,40 @@ class UsuarioDataSource {
         awaitClose { database.removeEventListener(listener) }
     }
 
+    /**
+     * Agrega un nuevo usuario a Firebase, generando una clave única mediante `push()`.
+     *
+     * @param usuario Datos del usuario a registrar (el `id` final se asigna automáticamente).
+     */
     suspend fun addUsuario(usuario: Usuario) {
         val key = database.push().key ?: ""
         database.child(key).setValue(mapFromUsuario(usuario.copy(id = key))).await()
     }
 
+    /**
+     * Actualiza parcialmente los campos de un usuario existente en Firebase.
+     *
+     * @param usuario Usuario con los datos actualizados (se usa su `id` para ubicar el nodo).
+     */
     suspend fun updateUsuario(usuario: Usuario) {
         database.child(usuario.id).updateChildren(mapFromUsuario(usuario)).await()
     }
 
+    /**
+     * Elimina el nodo correspondiente a un usuario en Firebase.
+     *
+     * @param id Identificador del usuario a eliminar.
+     */
     suspend fun deleteUsuario(id: String) {
         database.child(id).removeValue().await()
     }
 
+    /**
+     * Convierte un [Usuario] en un mapa clave-valor listo para persistirse en Firebase.
+     *
+     * @param u Usuario a serializar.
+     * @return Mapa con los campos del usuario en el formato esperado por Firebase.
+     */
     private fun mapFromUsuario(u: Usuario): Map<String, Any?> = mapOf(
         "id" to u.id,
         "nombre" to u.nombre,
@@ -3063,15 +3964,27 @@ class UsuarioDataSource {
 ```
 
 ### `data/source/MesaDataSource.kt`
-Acceso directo a Firebase para el CRUD del nodo `mesas_config` y la observación en tiempo real del estado de cada mesa.
 
 ```kotlin
+/**
+ * Fuente de datos encargada de la gestión de mesas contra Firebase Realtime Database.
+ *
+ * Combina dos nodos: `mesas_config` (configuración personalizada de mesas, como su
+ * capacidad) y `pedidos` (usado para inferir qué mesas están ocupadas según los
+ * pedidos activos).
+ */
 class MesaDataSource {
     private val mesasConfigRef = FirebaseDatabase.getInstance().getReference("mesas_config")
     private val pedidosRef = FirebaseDatabase.getInstance().getReference("pedidos")
 
     /**
-     * Obtiene la configuración de mesas personalizada.
+     * Observa en tiempo real la configuración personalizada de mesas almacenada en el
+     * nodo `mesas_config` (por ejemplo, capacidad de cada mesa). El estado de cada mesa
+     * se inicializa como [EstadoMesa.LIBRE] y se recalcula posteriormente combinándolo
+     * con [getMesasOcupadas].
+     *
+     * @return [Flow] que emite la lista de [Mesa] configuradas, sin el estado de
+     * ocupación aplicado todavía.
      */
     fun getMesasConfig(): Flow<List<Mesa>> = callbackFlow {
         val listener = object : ValueEventListener {
@@ -3100,7 +4013,11 @@ class MesaDataSource {
     }
 
     /**
-     * Escucha los pedidos activos para saber qué mesas están ocupadas.
+     * Observa en tiempo real el nodo `pedidos` para determinar qué números de mesa
+     * tienen actualmente un pedido activo (es decir, cuyo estado no es `ENTREGADO`
+     * ni `CANCELADO`).
+     *
+     * @return [Flow] que emite el conjunto de números de mesa actualmente ocupados.
      */
     fun getMesasOcupadas(): Flow<Set<Int>> = callbackFlow {
         val listener = object : ValueEventListener {
@@ -3123,18 +4040,33 @@ class MesaDataSource {
         awaitClose { pedidosRef.removeEventListener(listener) }
     }
 
+    /**
+     * Agrega una nueva mesa al nodo `mesas_config` en Firebase, con estado inicial "LIBRE".
+     *
+     * @param mesa Mesa a registrar (se usa su `id` y `capacidad`).
+     */
     suspend fun addMesa(mesa: Mesa) {
         mesasConfigRef.child(mesa.id.toString()).setValue(
             mapOf("id" to mesa.id, "capacidad" to mesa.capacidad, "estado" to "LIBRE")
         ).await()
     }
 
+    /**
+     * Actualiza la capacidad de una mesa existente en el nodo `mesas_config`.
+     *
+     * @param mesa Mesa con la capacidad actualizada (se usa su `id` para ubicar el nodo).
+     */
     suspend fun updateMesa(mesa: Mesa) {
         mesasConfigRef.child(mesa.id.toString()).updateChildren(
             mapOf("capacidad" to mesa.capacidad)
         ).await()
     }
 
+    /**
+     * Elimina la configuración de una mesa del nodo `mesas_config`.
+     *
+     * @param id Identificador de la mesa a eliminar.
+     */
     suspend fun deleteMesa(id: Int) {
         mesasConfigRef.child(id.toString()).removeValue().await()
     }
@@ -3142,12 +4074,23 @@ class MesaDataSource {
 ```
 
 ### `data/source/ZonaDataSource.kt`
-Acceso directo a Firebase para el CRUD del nodo `zonas`.
 
 ```kotlin
+/**
+ * Fuente de datos encargada del CRUD de zonas contra el nodo `zonas` de
+ * Firebase Realtime Database, exponiendo los cambios en tiempo real como [Flow].
+ */
 class ZonaDataSource {
     private val database = FirebaseDatabase.getInstance().getReference("zonas")
 
+    /**
+     * Observa en tiempo real la lista completa de zonas registradas en Firebase.
+     *
+     * Utiliza `callbackFlow` junto con un [ValueEventListener], aplicando un valor
+     * por defecto ([EstadoZona.DISPONIBLE]) cuando el estado almacenado no es válido.
+     *
+     * @return [Flow] que emite la lista actualizada de [Zona].
+     */
     fun getZonas(): Flow<List<Zona>> = callbackFlow {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -3175,6 +4118,11 @@ class ZonaDataSource {
         awaitClose { database.removeEventListener(listener) }
     }
 
+    /**
+     * Agrega una nueva zona a Firebase, generando una clave única mediante `push()`.
+     *
+     * @param zona Datos de la zona a registrar (el `id` final se asigna automáticamente).
+     */
     suspend fun addZona(zona: Zona) {
         val key = database.push().key ?: ""
         database.child(key).setValue(
@@ -3186,6 +4134,11 @@ class ZonaDataSource {
         ).await()
     }
 
+    /**
+     * Actualiza el nombre y el estado de una zona existente en Firebase.
+     *
+     * @param zona Zona con los datos actualizados (se usa su `id` para ubicar el nodo).
+     */
     suspend fun updateZona(zona: Zona) {
         database.child(zona.id).updateChildren(
             mapOf(
@@ -3195,6 +4148,11 @@ class ZonaDataSource {
         ).await()
     }
 
+    /**
+     * Elimina el nodo correspondiente a una zona en Firebase.
+     *
+     * @param id Identificador de la zona a eliminar.
+     */
     suspend fun deleteZona(id: String) {
         database.child(id).removeValue().await()
     }
@@ -3202,12 +4160,21 @@ class ZonaDataSource {
 ```
 
 ### `data/source/MenuDataSource.kt`
-Acceso directo a Firebase para el CRUD del nodo `menu` (platillos).
 
 ```kotlin
+/**
+ * Fuente de datos encargada del CRUD del menú (platillos) contra el nodo `menu` de
+ * Firebase Realtime Database, exponiendo los cambios en tiempo real como [Flow].
+ */
 class MenuDataSource {
     private val database = FirebaseDatabase.getInstance().getReference("menu")
 
+    /**
+     * Observa en tiempo real la lista completa de platillos del menú registrados en
+     * Firebase. Los registros que fallan al mapearse se omiten silenciosamente.
+     *
+     * @return [Flow] que emite la lista actualizada de [Platillo].
+     */
     fun getMenu(): Flow<List<Platillo>> = callbackFlow {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -3235,19 +4202,41 @@ class MenuDataSource {
         awaitClose { database.removeEventListener(listener) }
     }
 
+    /**
+     * Agrega un nuevo platillo al menú en Firebase, generando una clave única
+     * mediante `push()`.
+     *
+     * @param platillo Datos del platillo a registrar (el `id` final se asigna automáticamente).
+     */
     suspend fun addPlatillo(platillo: Platillo) {
         val key = database.push().key ?: ""
         database.child(key).setValue(mapPlatillo(platillo.copy(id = key))).await()
     }
 
+    /**
+     * Actualiza parcialmente los campos de un platillo existente en Firebase.
+     *
+     * @param platillo Platillo con los datos actualizados (se usa su `id` para ubicar el nodo).
+     */
     suspend fun updatePlatillo(platillo: Platillo) {
         database.child(platillo.id).updateChildren(mapPlatillo(platillo)).await()
     }
 
+    /**
+     * Elimina el nodo correspondiente a un platillo en Firebase.
+     *
+     * @param id Identificador del platillo a eliminar.
+     */
     suspend fun deletePlatillo(id: String) {
         database.child(id).removeValue().await()
     }
 
+    /**
+     * Convierte un [Platillo] en un mapa clave-valor listo para persistirse en Firebase.
+     *
+     * @param p Platillo a serializar.
+     * @return Mapa con los campos del platillo en el formato esperado por Firebase.
+     */
     private fun mapPlatillo(p: Platillo): Map<String, Any?> = mapOf(
         "id" to p.id,
         "nombre" to p.nombre,
@@ -3260,12 +4249,25 @@ class MenuDataSource {
 ```
 
 ### `data/source/PedidoDataSource.kt`
-Acceso directo a Firebase para el CRUD del nodo de pedidos, incluyendo el registro de los platillos seleccionados por comanda y la actualización de su estado.
 
 ```kotlin
+/**
+ * Fuente de datos encargada del CRUD de pedidos contra el nodo `pedidos` de
+ * Firebase Realtime Database, incluyendo el registro de sus ítems y la
+ * actualización de su estado, exponiendo los cambios en tiempo real como [Flow].
+ */
 class PedidoDataSource {
     private val database = FirebaseDatabase.getInstance().getReference("pedidos")
 
+    /**
+     * Observa en tiempo real la lista completa de pedidos registrados en Firebase,
+     * incluyendo el detalle de los ítems (`items`) asociados a cada uno, mapeados
+     * a [PlatilloSeleccionado]. Los registros que fallan al mapearse se omiten
+     * silenciosamente y el estado se resuelve a [EstadoPedido.PENDIENTE] por defecto
+     * si el valor almacenado no es válido.
+     *
+     * @return [Flow] que emite la lista actualizada de [Pedido].
+     */
     fun getPedidos(): Flow<List<Pedido>> = callbackFlow {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -3304,6 +4306,15 @@ class PedidoDataSource {
         awaitClose { database.removeEventListener(listener) }
     }
 
+    /**
+     * Registra un nuevo pedido en Firebase junto con sus ítems, generando una clave
+     * única mediante `push()` y asignando la marca de tiempo del servidor
+     * ([ServerValue.TIMESTAMP]) automáticamente.
+     *
+     * @param pedido Datos generales del pedido a registrar.
+     * @param items Lista de ítems del pedido en el formato de mapas clave-valor
+     * esperado por Firebase.
+     */
     suspend fun addPedido(pedido: Pedido, items: List<Map<String, String>>) {
         val key = database.push().key ?: "p"
         val nuevo = hashMapOf(
@@ -3321,10 +4332,21 @@ class PedidoDataSource {
         database.child(key).setValue(nuevo).await()
     }
 
+    /**
+     * Actualiza únicamente el campo de estado de un pedido existente en Firebase.
+     *
+     * @param pedidoId Identificador del pedido a actualizar.
+     * @param nuevoEstado Nuevo estado a asignar ([EstadoPedido]).
+     */
     suspend fun updateEstado(pedidoId: String, nuevoEstado: EstadoPedido) {
         database.child(pedidoId).child("estado").setValue(nuevoEstado.name).await()
     }
 
+    /**
+     * Elimina el nodo correspondiente a un pedido en Firebase.
+     *
+     * @param pedidoId Identificador del pedido a eliminar.
+     */
     suspend fun deletePedido(pedidoId: String) {
         database.child(pedidoId).removeValue().await()
     }
@@ -3336,11 +4358,23 @@ class PedidoDataSource {
 ## Data / Repository (implementaciones)
 
 ### `data/repository/AuthRepositoryImpl.kt`
-Implementa `AuthRepository` delegando las operaciones a `AuthDataSource`, actuando como puente entre la capa de dominio y Firebase.
 
 ```kotlin
+/**
+ * Implementación de [AuthRepository] que delega las operaciones de autenticación
+ * a [AuthDataSource] y traduce los resultados (o excepciones) al tipo [Result]
+ * esperado por la capa de dominio.
+ *
+ * @property dataSource Fuente de datos usada para realizar las operaciones contra Firebase.
+ */
 class AuthRepositoryImpl(private val dataSource: AuthDataSource) : AuthRepository {
 
+    /**
+     * @see AuthRepository.loginAsAdmin
+     *
+     * Delega en [AuthDataSource.loginAsAdmin] y envuelve el resultado en [Result],
+     * devolviendo fallo si el usuario administrador resulta `null` o si ocurre una excepción.
+     */
     override suspend fun loginAsAdmin(): Result<Usuario> {
         return try {
             val admin = dataSource.loginAsAdmin()
@@ -3351,6 +4385,12 @@ class AuthRepositoryImpl(private val dataSource: AuthDataSource) : AuthRepositor
         }
     }
 
+    /**
+     * @see AuthRepository.login
+     *
+     * Delega en [AuthDataSource.login] y envuelve el resultado en [Result],
+     * devolviendo fallo si no se encuentra el usuario o si ocurre una excepción.
+     */
     override suspend fun login(nombreUsuario: String): Result<Usuario> {
         return try {
             val user = dataSource.login(nombreUsuario)
@@ -3361,6 +4401,12 @@ class AuthRepositoryImpl(private val dataSource: AuthDataSource) : AuthRepositor
         }
     }
 
+    /**
+     * @see AuthRepository.register
+     *
+     * Delega en [AuthDataSource.register] y envuelve el resultado en [Result],
+     * capturando cualquier excepción como fallo.
+     */
     override suspend fun register(usuario: Usuario): Result<Unit> {
         return try {
             dataSource.register(usuario)
@@ -3373,23 +4419,59 @@ class AuthRepositoryImpl(private val dataSource: AuthDataSource) : AuthRepositor
 ```
 
 ### `data/repository/UsuarioRepositoryImpl.kt`
-Implementa `UsuarioRepository` delegando las operaciones a `UsuarioDataSource`.
 
 ```kotlin
+/**
+ * Implementación de [UsuarioRepository] que delega directamente todas sus
+ * operaciones a [UsuarioDataSource], actuando como puente entre la capa de
+ * dominio y la fuente de datos de Firebase.
+ *
+ * @property dataSource Fuente de datos usada para realizar las operaciones contra Firebase.
+ */
 class UsuarioRepositoryImpl(private val dataSource: UsuarioDataSource) : UsuarioRepository {
+
+    /** @see UsuarioRepository.getUsuarios */
     override fun getUsuarios(): Flow<List<Usuario>> = dataSource.getUsuarios()
+
+    /** @see UsuarioRepository.addUsuario */
     override suspend fun addUsuario(usuario: Usuario) = dataSource.addUsuario(usuario)
+
+    /** @see UsuarioRepository.updateUsuario */
     override suspend fun updateUsuario(usuario: Usuario) = dataSource.updateUsuario(usuario)
+
+    /** @see UsuarioRepository.deleteUsuario */
     override suspend fun deleteUsuario(id: String) = dataSource.deleteUsuario(id)
 }
 ```
 
 ### `data/repository/MesaRepositoryImpl.kt`
-Implementa `MesaRepository` delegando las operaciones a `MesaDataSource`.
 
 ```kotlin
+/**
+ * Implementación de [MesaRepository] que combina la configuración de mesas con
+ * la información de ocupación en tiempo real, delegando la persistencia a
+ * [MesaDataSource].
+ *
+ * @property dataSource Fuente de datos usada para realizar las operaciones contra Firebase.
+ */
 class MesaRepositoryImpl(private val dataSource: MesaDataSource) : MesaRepository {
 
+    /**
+     * @see MesaRepository.getTodasLasMesas
+     *
+     * Combina [MesaDataSource.getMesasConfig] (configuración personalizada de mesas)
+     * con [MesaDataSource.getMesasOcupadas] (números de mesa ocupados) para construir
+     * la lista completa de mesas:
+     *
+     * 1. Genera un conjunto base de mesas del 1 al 12 para aquellas que no tengan
+     *    configuración personalizada registrada.
+     * 2. Une ese conjunto base con las mesas configuradas y las ordena por `id`.
+     * 3. Actualiza el [EstadoMesa] de cada mesa a `OCUPADA` o `LIBRE` según si su
+     *    `id` está presente en el conjunto de mesas ocupadas.
+     *
+     * @return [Flow] que emite la lista final de [Mesa] con su estado de ocupación
+     * calculado en tiempo real.
+     */
     override fun getTodasLasMesas(): Flow<List<Mesa>> {
         return combine(
             dataSource.getMesasConfig(),
@@ -3410,54 +4492,93 @@ class MesaRepositoryImpl(private val dataSource: MesaDataSource) : MesaRepositor
         }
     }
 
+    /** @see MesaRepository.addMesa */
     override suspend fun addMesa(mesa: Mesa) = dataSource.addMesa(mesa)
+
+    /** @see MesaRepository.updateMesa */
     override suspend fun updateMesa(mesa: Mesa) = dataSource.updateMesa(mesa)
+
+    /** @see MesaRepository.deleteMesa */
     override suspend fun deleteMesa(id: Int) = dataSource.deleteMesa(id)
 }
 ```
 
 ### `data/repository/ZonaRepositoryImpl.kt`
-Implementa `ZonaRepository` delegando las operaciones a `ZonaDataSource`.
 
 ```kotlin
+/**
+ * Implementación de [ZonaRepository] que delega directamente todas sus
+ * operaciones a [ZonaDataSource].
+ *
+ * @property dataSource Fuente de datos usada para realizar las operaciones contra Firebase.
+ */
 class ZonaRepositoryImpl(private val dataSource: ZonaDataSource) : ZonaRepository {
+
+    /** @see ZonaRepository.getZonas */
     override fun getZonas(): Flow<List<Zona>> = dataSource.getZonas()
+
+    /** @see ZonaRepository.addZona */
     override suspend fun addZona(zona: Zona) = dataSource.addZona(zona)
+
+    /** @see ZonaRepository.updateZona */
     override suspend fun updateZona(zona: Zona) = dataSource.updateZona(zona)
+
+    /** @see ZonaRepository.deleteZona */
     override suspend fun deleteZona(id: String) = dataSource.deleteZona(id)
 }
 ```
 
 ### `data/repository/MenuRepositoryImpl.kt`
-Implementa `MenuRepository` delegando las operaciones a `MenuDataSource`.
 
 ```kotlin
+/**
+ * Implementación de [MenuRepository] que delega directamente todas sus
+ * operaciones a [MenuDataSource].
+ *
+ * @property dataSource Fuente de datos usada para realizar las operaciones contra Firebase.
+ */
 class MenuRepositoryImpl(private val dataSource: MenuDataSource) : MenuRepository {
+
+    /** @see MenuRepository.getMenu */
     override fun getMenu(): Flow<List<Platillo>> = dataSource.getMenu()
 
+    /** @see MenuRepository.addPlatillo */
     override suspend fun addPlatillo(platillo: Platillo) = dataSource.addPlatillo(platillo)
+
+    /** @see MenuRepository.updatePlatillo */
     override suspend fun updatePlatillo(platillo: Platillo) = dataSource.updatePlatillo(platillo)
+
+    /** @see MenuRepository.deletePlatillo */
     override suspend fun deletePlatillo(id: String) = dataSource.deletePlatillo(id)
 }
 ```
 
 ### `data/repository/PedidoRepositoryImpl.kt`
-Implementa `PedidoRepository` delegando las operaciones a `PedidoDataSource`.
 
 ```kotlin
+/**
+ * Implementación de [PedidoRepository] que delega directamente todas sus
+ * operaciones a [PedidoDataSource].
+ *
+ * @property dataSource Fuente de datos usada para realizar las operaciones contra Firebase.
+ */
 class PedidoRepositoryImpl(private val dataSource: PedidoDataSource) : PedidoRepository {
+
+    /** @see PedidoRepository.getPedidos */
     override fun getPedidos(): Flow<List<Pedido>> = dataSource.getPedidos()
 
+    /** @see PedidoRepository.addPedido */
     override suspend fun addPedido(pedido: Pedido, items: List<Map<String, String>>) =
         dataSource.addPedido(pedido, items)
 
+    /** @see PedidoRepository.updateEstado */
     override suspend fun updateEstado(pedidoId: String, nuevoEstado: EstadoPedido) =
         dataSource.updateEstado(pedidoId, nuevoEstado)
 
+    /** @see PedidoRepository.deletePedido */
     override suspend fun deletePedido(pedidoId: String) = dataSource.deletePedido(pedidoId)
 }
 ```
-
 
 
 ## [Regresar al README principal](/README.md)
